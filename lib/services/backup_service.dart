@@ -1,0 +1,121 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
+
+/// Backup e restauração do banco local (para recuperar dados após desinstalar).
+/// - Exportar: copia o SQLite para um ficheiro e partilha (Guardar em Downloads/Drive).
+/// - Restaurar: escolhe um ficheiro; na próxima abertura do app o banco é substituído.
+class BackupService {
+  static const String _dbName = 'inventario_florestal';
+  static const String _pendingRestoreKey = 'pending_restore';
+  static const String _pendingRestorePathKey = 'pending_restore_path';
+
+  /// Caminho do ficheiro da base de dados (drift_flutter: documents/inventario_florestal.sqlite).
+  static Future<String> get _dbPath async {
+    final dir = await getApplicationDocumentsDirectory();
+    return p.join(dir.path, '$_dbName.sqlite');
+  }
+
+  /// Executar restauração pendente (chamar no arranque do app, antes de abrir o DB).
+  static Future<void> runPendingRestore() async {
+    if (kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString(_pendingRestorePathKey);
+    if (path == null || path.isEmpty) return;
+    prefs.remove(_pendingRestorePathKey);
+    prefs.setBool(_pendingRestoreKey, false);
+
+    final backupFile = File(path);
+    if (!await backupFile.exists()) return;
+
+    final targetPath = await _dbPath;
+    final target = File(targetPath);
+    await backupFile.copy(target.path);
+    try {
+      await backupFile.delete();
+    } catch (_) {}
+    debugPrint('BackupService: restauração aplicada a $targetPath');
+  }
+
+  /// Exportar backup: copia o DB para um ficheiro com data e partilha.
+  /// Retorna mensagem de sucesso ou erro.
+  static Future<String> exportBackup() async {
+    if (kIsWeb) return 'Backup não disponível na versão web.';
+    try {
+      final sourcePath = await _dbPath;
+      final source = File(sourcePath);
+      if (!await source.exists()) {
+        return 'Base de dados não encontrada.';
+      }
+      final dir = await getApplicationDocumentsDirectory();
+      final now = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
+      final fileName = 'inventario_florestal_backup_$now.sqlite';
+      final destPath = p.join(dir.path, fileName);
+      final dest = await source.copy(destPath);
+      await Share.shareXFiles(
+        [XFile(dest.path)],
+        subject: 'Backup Inventário Florestal',
+        text: 'Guarde este ficheiro. Pode usar "Restaurar de backup" no app após reinstalar.',
+      );
+      try {
+        await dest.delete();
+      } catch (_) {}
+      return 'Backup partilhado. Guarde o ficheiro (ex.: em Downloads ou Drive) para poder restaurar depois.';
+    } catch (e) {
+      return 'Erro ao exportar: $e';
+    }
+  }
+
+  /// Preparar restauração: copia o ficheiro escolhido para um path conhecido e marca flag.
+  /// Na próxima abertura do app, runPendingRestore() substitui o DB.
+  /// Retorna mensagem de sucesso ou erro.
+  static Future<String> prepareRestore(String backupFilePath) async {
+    if (kIsWeb) return 'Restaurar não disponível na versão web.';
+    try {
+      final backup = File(backupFilePath);
+      if (!await backup.exists()) {
+        return 'Ficheiro não encontrado.';
+      }
+      return await _writePendingAndSetFlag(backup);
+    } catch (e) {
+      return 'Erro ao preparar restauração: $e';
+    }
+  }
+
+  /// Restaurar a partir de bytes (quando file_picker não devolve path, ex. Android).
+  static Future<String> prepareRestoreFromBytes(List<int> bytes) async {
+    if (kIsWeb) return 'Restaurar não disponível na versão web.';
+    try {
+      if (bytes.isEmpty) return 'Ficheiro vazio.';
+      final dir = await getApplicationDocumentsDirectory();
+      const pendingName = 'restore_pending.sqlite';
+      final pendingPath = p.join(dir.path, pendingName);
+      final pending = File(pendingPath);
+      if (await pending.exists()) await pending.delete();
+      await pending.writeAsBytes(bytes);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_pendingRestorePathKey, pendingPath);
+      await prefs.setBool(_pendingRestoreKey, true);
+      return 'Restauração marcada. Feche o app completamente e reabra para aplicar (os dados atuais serão substituídos pelo backup).';
+    } catch (e) {
+      return 'Erro ao preparar restauração: $e';
+    }
+  }
+
+  static Future<String> _writePendingAndSetFlag(File backup) async {
+    final dir = await getApplicationDocumentsDirectory();
+    const pendingName = 'restore_pending.sqlite';
+    final pendingPath = p.join(dir.path, pendingName);
+    final pending = File(pendingPath);
+    if (await pending.exists()) await pending.delete();
+    await backup.copy(pendingPath);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_pendingRestorePathKey, pendingPath);
+    await prefs.setBool(_pendingRestoreKey, true);
+    return 'Restauração marcada. Feche o app completamente e reabra para aplicar (os dados atuais serão substituídos pelo backup).';
+  }
+}
