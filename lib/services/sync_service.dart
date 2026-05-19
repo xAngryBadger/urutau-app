@@ -23,13 +23,18 @@ class _NgrokHttpClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers['ngrok-skip-browser-warning'] = 'true';
     return _inner.send(request).timeout(timeout, onTimeout: () {
-      throw TimeoutException('Requisição expirou após ${timeout.inSeconds}s: ${request.url}');
+      throw TimeoutException(
+          'Requisição expirou após ${timeout.inSeconds}s: ${request.url}');
     });
   }
 }
 
-http.Client _createHttpClient({Duration timeout = const Duration(seconds: 30)}) =>
+http.Client _createHttpClient(
+        {Duration timeout = const Duration(seconds: 30)}) =>
     _NgrokHttpClient(http.Client(), timeout: timeout);
+
+String _escapePbFilter(String v) =>
+    v.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 
 class SyncService extends ChangeNotifier {
   final AppDatabase _db;
@@ -40,10 +45,10 @@ class SyncService extends ChangeNotifier {
   String? _serverUrl;
   bool _isConnected = false;
   double _syncProgress = 0.0; // 0.0 a 1.0
-  
+
   // Usuário local atual
   Usuario? _currentUser;
-  
+
   // Configurações de retry
   static const int _maxRetries = 3;
   static const Duration _baseRetryDelay = Duration(seconds: 2);
@@ -79,14 +84,16 @@ class SyncService extends ChangeNotifier {
   }
 
   /// Executa uma operação com retry exponencial.
-  Future<T> _withRetry<T>(Future<T> Function() operation, {int maxRetries = _maxRetries}) async {
+  Future<T> _withRetry<T>(Future<T> Function() operation,
+      {int maxRetries = _maxRetries}) async {
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await operation();
       } catch (e) {
         if (attempt == maxRetries) rethrow;
         final delay = _baseRetryDelay * (1 << attempt); // 2s, 4s, 8s
-        debugPrint('Tentativa ${attempt + 1} falhou, retentando em ${delay.inSeconds}s: $e');
+        debugPrint(
+            'Tentativa ${attempt + 1} falhou, retentando em ${delay.inSeconds}s: $e');
         await Future.delayed(delay);
       }
     }
@@ -97,30 +104,31 @@ class SyncService extends ChangeNotifier {
   Future<void> init() async {
     // Migra credenciais legadas de SharedPreferences para SecureStorage
     await SecureStorageService.migrateFromSharedPreferences();
-    
+
     final prefs = await SharedPreferences.getInstance();
     _serverUrl = prefs.getString('server_url');
-    
+
     // URL do servidor (ngrok) — é a que as pessoas em campo usam para chegar ao PocketBase.
     if (_serverUrl == null || _serverUrl!.isEmpty) {
       _serverUrl = 'https://REDACTED.ngrok-free.dev';
       await prefs.setString('server_url', _serverUrl!);
       await SecureStorageService.delete(SecureStorageService.keyAuthToken);
     }
-    
+
     _pb = PocketBase(_serverUrl!, httpClientFactory: _createHttpClient);
     // Restaurar auth token se existir
-    final authToken = await SecureStorageService.read(SecureStorageService.keyAuthToken);
+    final authToken =
+        await SecureStorageService.read(SecureStorageService.keyAuthToken);
     if (authToken != null) {
       _pb!.authStore.save(authToken, null);
     }
-    
+
     // Restaurar usuário local atual
     final userUuid = prefs.getString('current_user_uuid');
     if (userUuid != null) {
       _currentUser = await _db.getUsuarioByUuid(userUuid);
     }
-    
+
     await _updatePendingCount();
     notifyListeners();
   }
@@ -146,11 +154,13 @@ class SyncService extends ChangeNotifier {
       _isConnected = false;
       notifyListeners();
       final errorStr = e.toString();
-      if (errorStr.contains('Failed to fetch') || errorStr.contains('SocketException')) {
+      if (errorStr.contains('Failed to fetch') ||
+          errorStr.contains('SocketException')) {
         return 'Servidor não encontrado em $url.\n'
             'Verifique se o PocketBase está rodando.';
       }
-      if (errorStr.contains('CERTIFICATE') || errorStr.contains('HandshakeException')) {
+      if (errorStr.contains('CERTIFICATE') ||
+          errorStr.contains('HandshakeException')) {
         return 'Erro de certificado SSL.\n'
             'Tente usar http:// em vez de https://';
       }
@@ -167,7 +177,8 @@ class SyncService extends ChangeNotifier {
     await prefs.setBool('current_user_is_admin', user.isAdmin);
     // Senha vai para secure storage (não SharedPreferences)
     if (password != null && password.isNotEmpty) {
-      await SecureStorageService.write(SecureStorageService.keyCurrentPassword, password);
+      await SecureStorageService.write(
+          SecureStorageService.keyCurrentPassword, password);
     }
     await _updatePendingCount();
     notifyListeners();
@@ -202,13 +213,15 @@ class SyncService extends ChangeNotifier {
   Future<bool> login(String email, String password) async {
     if (_pb == null) return false;
     try {
-      final authData = await _withRetry(() =>
-        _pb!.collection('users').authWithPassword(email, password),
+      final authData = await _withRetry(
+        () => _pb!.collection('users').authWithPassword(email, password),
       );
-      await SecureStorageService.write(SecureStorageService.keyAuthToken, _pb!.authStore.token);
+      await SecureStorageService.write(
+          SecureStorageService.keyAuthToken, _pb!.authStore.token);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_id', authData.record.id);
-      await prefs.setString('user_name', authData.record.getStringValue('name'));
+      await prefs.setString(
+          'user_name', authData.record.getStringValue('name'));
       notifyListeners();
       return true;
     } catch (e) {
@@ -221,7 +234,8 @@ class SyncService extends ChangeNotifier {
 
   /// Verifica se o usuário está logado.
   Future<bool> isLoggedIn() async {
-    final token = await SecureStorageService.read(SecureStorageService.keyAuthToken);
+    final token =
+        await SecureStorageService.read(SecureStorageService.keyAuthToken);
     return token != null && token.isNotEmpty;
   }
 
@@ -266,27 +280,33 @@ class SyncService extends ChangeNotifier {
 
   /// Registra usuário no servidor PocketBase (cadastro online-first).
   /// Retorna o ID do registro criado, ou null se falhar.
-  Future<String?> registrarUsuarioNoServidor(String nome, String email, String senha) async {
+  Future<String?> registrarUsuarioNoServidor(
+      String nome, String email, String senha,
+      {bool isAdmin = false}) async {
     if (_pb == null || _serverUrl == null) return null;
 
     // Verifica se já existe no servidor
     try {
-      final existing = await _withRetry(() =>
-        _pb!.collection('users').getFullList(filter: 'email = "$email"'),
+      final safeEmail = _escapePbFilter(email);
+      final records = await _withRetry(
+        () => _pb!
+            .collection('users')
+            .getFullList(filter: 'email = "$safeEmail"'),
       );
-      if (existing.isNotEmpty) {
-        return existing.first.id;
+      if (records.isNotEmpty) {
+        return records.first.id;
       }
     } catch (_) {}
 
     // Tenta criar via SDK
     try {
-      final record = await _withRetry(() =>
-        _pb!.collection('users').create(body: {
+      final record = await _withRetry(
+        () => _pb!.collection('users').create(body: {
           'email': email,
           'password': senha,
           'passwordConfirm': senha,
           'name': nome,
+          'isAdmin': isAdmin,
         }),
       );
       return record.id;
@@ -306,6 +326,7 @@ class SyncService extends ChangeNotifier {
           'password': senha,
           'passwordConfirm': senha,
           'name': nome,
+          'isAdmin': isAdmin,
         }),
       );
       client.close();
@@ -313,7 +334,8 @@ class SyncService extends ChangeNotifier {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
         return data['id'] as String?;
       }
-      debugPrint('HTTP raw create user: ${response.statusCode} - ${response.body}');
+      debugPrint(
+          'HTTP raw create user: ${response.statusCode} - ${response.body}');
     } catch (e) {
       debugPrint('HTTP raw create user erro: $e');
     }
@@ -323,14 +345,15 @@ class SyncService extends ChangeNotifier {
 
   /// Busca e autentica usuário no servidor PocketBase por email+senha.
   /// Retorna dados do usuário se autenticou com sucesso, null caso contrário.
-  Future<Map<String, dynamic>?> buscarUsuarioNoServidor(String email, {String? password}) async {
+  Future<Map<String, dynamic>?> buscarUsuarioNoServidor(String email,
+      {String? password}) async {
     if (_pb == null) return null;
 
     // 1. Se temos senha, tenta auth direta (mais confiável, não precisa de admin auth)
     if (password != null && password.isNotEmpty) {
       try {
-        final authData = await _withRetry(() =>
-          _pb!.collection('users').authWithPassword(email, password),
+        final authData = await _withRetry(
+          () => _pb!.collection('users').authWithPassword(email, password),
         );
         final r = authData.record;
         debugPrint('Auth PocketBase OK para $email (id: ${r.id})');
@@ -348,8 +371,8 @@ class SyncService extends ChangeNotifier {
 
     // 2. Fallback: tenta buscar por listagem (requer admin auth)
     try {
-      final records = await _withRetry(() =>
-        _pb!.collection('users').getFullList(filter: 'email = "$email"'),
+      final records = await _withRetry(
+        () => _pb!.collection('users').getFullList(filter: 'email = "$email"'),
       );
       if (records.isNotEmpty) {
         final r = records.first;
@@ -386,13 +409,17 @@ class SyncService extends ChangeNotifier {
     }
 
     try {
-      final authData = await _withRetry(() =>
-        _pb!.collection('users').authWithPassword(_currentUser!.email, password),
+      final authData = await _withRetry(
+        () => _pb!
+            .collection('users')
+            .authWithPassword(_currentUser!.email, password),
       );
-      await SecureStorageService.write(SecureStorageService.keyAuthToken, _pb!.authStore.token);
+      await SecureStorageService.write(
+          SecureStorageService.keyAuthToken, _pb!.authStore.token);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_id', authData.record.id);
-      await prefs.setString('user_name', authData.record.getStringValue('name'));
+      await prefs.setString(
+          'user_name', authData.record.getStringValue('name'));
 
       // ── Reconcilia UUID local com o ID do PocketBase ──
       await _reconcileUserUuid(authData.record.id);
@@ -402,21 +429,25 @@ class SyncService extends ChangeNotifier {
       debugPrint('Auto-auth falhou: $e');
       // Tenta criar o usuário no PocketBase e depois logar
       try {
-        await _withRetry(() =>
-          _pb!.collection('users').create(body: {
+        await _withRetry(
+          () => _pb!.collection('users').create(body: {
             'email': _currentUser!.email,
             'password': password,
             'passwordConfirm': password,
             'name': _currentUser!.nome,
           }),
         );
-        final authData = await _withRetry(() =>
-          _pb!.collection('users').authWithPassword(_currentUser!.email, password),
+        final authData = await _withRetry(
+          () => _pb!
+              .collection('users')
+              .authWithPassword(_currentUser!.email, password),
         );
-        await SecureStorageService.write(SecureStorageService.keyAuthToken, _pb!.authStore.token);
+        await SecureStorageService.write(
+            SecureStorageService.keyAuthToken, _pb!.authStore.token);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_id', authData.record.id);
-        await prefs.setString('user_name', authData.record.getStringValue('name'));
+        await prefs.setString(
+            'user_name', authData.record.getStringValue('name'));
 
         await _reconcileUserUuid(authData.record.id);
         return true;
@@ -455,8 +486,9 @@ class SyncService extends ChangeNotifier {
       int page = 1;
       bool hasMore = true;
       while (hasMore) {
-        final result = await _withRetry(() =>
-          _pb!.collection('users').getList(page: page, perPage: _pageSize),
+        final result = await _withRetry(
+          () =>
+              _pb!.collection('users').getList(page: page, perPage: _pageSize),
         );
         pbUsers.addAll(result.items);
         hasMore = result.items.length == _pageSize;
@@ -467,7 +499,8 @@ class SyncService extends ChangeNotifier {
 
       for (final local in localUsers) {
         final pbMatch = pbUsers.where((r) =>
-            r.getStringValue('email').toLowerCase() == local.email.toLowerCase());
+            r.getStringValue('email').toLowerCase() ==
+            local.email.toLowerCase());
         if (pbMatch.isNotEmpty) {
           final pbId = pbMatch.first.id;
           map[local.uuid] = pbId;
@@ -492,7 +525,8 @@ class SyncService extends ChangeNotifier {
     if (_isSyncing) return;
 
     if (_pb == null) {
-      _lastError = 'Servidor não configurado. Vá em Configurações e informe a URL.';
+      _lastError =
+          'Servidor não configurado. Vá em Configurações e informe a URL.';
       notifyListeners();
       return;
     }
@@ -507,7 +541,8 @@ class SyncService extends ChangeNotifier {
     if (!_pb!.authStore.isValid) {
       final ok = await _tryAutoAuth();
       if (!ok) {
-        debugPrint('Auth falhou, mas prosseguindo sync sem auth (collections abertas).');
+        debugPrint(
+            'Auth falhou, mas prosseguindo sync sem auth (collections abertas).');
       }
     }
 
@@ -544,7 +579,8 @@ class SyncService extends ChangeNotifier {
         final lote = parcelas.skip(i).take(50).toList();
         for (final parcela in lote) {
           // Ignora parcelas de usuários que não existem mais (userId vazio = "desistir", envia)
-          if (parcela.userId.isNotEmpty && !uuidsAtivos.contains(parcela.userId)) {
+          if (parcela.userId.isNotEmpty &&
+              !uuidsAtivos.contains(parcela.userId)) {
             debugPrint('Ignorando parcela órfã ${parcela.uuid}');
             await _db.marcarParcelaSynced(parcela.uuid);
             continue;
@@ -556,7 +592,8 @@ class SyncService extends ChangeNotifier {
             notifyListeners();
           } catch (e) {
             debugPrint('Erro ao sincronizar parcela ${parcela.uuid}: $e');
-            _lastError = 'Falha ao enviar parcela ${parcela.idParcela}. Verifique a conexão e tente novamente.';
+            _lastError =
+                'Falha ao enviar parcela ${parcela.idParcela}. Verifique a conexão e tente novamente.';
           }
         }
       }
@@ -585,7 +622,8 @@ class SyncService extends ChangeNotifier {
 
       await _updatePendingCount();
     } catch (e) {
-      _lastError = 'Falha na sincronização. Verifique a conexão e tente novamente.';
+      _lastError =
+          'Falha na sincronização. Verifique a conexão e tente novamente.';
       debugPrint('Erro na sincronização: $e');
     } finally {
       _isSyncing = false;
@@ -612,15 +650,17 @@ class SyncService extends ChangeNotifier {
       int page = 1;
       bool hasMore = true;
       while (hasMore) {
-        final result = await _withRetry(() =>
-          _pb!.collection('users').getList(page: page, perPage: _pageSize),
+        final result = await _withRetry(
+          () =>
+              _pb!.collection('users').getList(page: page, perPage: _pageSize),
         );
         registros.addAll(result.items);
         hasMore = result.items.length == _pageSize;
         page++;
       }
 
-      debugPrint('pullUsuariosDoServidor: ${registros.length} usuários encontrados no PB');
+      debugPrint(
+          'pullUsuariosDoServidor: ${registros.length} usuários encontrados no PB');
 
       int novos = 0;
       int atualizados = 0;
@@ -641,8 +681,9 @@ class SyncService extends ChangeNotifier {
           // Usuário já existe. Verifica se precisa atualizar
           bool needsUpdate = false;
           final updates = <dynamic, dynamic>{};
-          
-          debugPrint('  Existente: nome="${existing.nome}", email="${existing.email}"');
+
+          debugPrint(
+              '  Existente: nome="${existing.nome}", email="${existing.email}"');
 
           // Nome precisa atualizar se:
           // - é igual ao serverId (hash do PB)
@@ -652,7 +693,10 @@ class SyncService extends ChangeNotifier {
           final nomeAtual = existing.nome;
           final nomeParecePbId = RegExp(r'^[a-z0-9]{15}$').hasMatch(nomeAtual);
           final nomeNaoBate = nomeAtual != nomeReal && nomeReal.isNotEmpty;
-          if (nomeAtual == serverId || nomeAtual.contains('@imported') || nomeParecePbId || (nomeNaoBate && nomeAtual == existing.uuid)) {
+          if (nomeAtual == serverId ||
+              nomeAtual.contains('@imported') ||
+              nomeParecePbId ||
+              (nomeNaoBate && nomeAtual == existing.uuid)) {
             updates['nome'] = nomeReal;
             needsUpdate = true;
             debugPrint('  → Atualizando nome: $nomeAtual → $nomeReal');
@@ -660,18 +704,35 @@ class SyncService extends ChangeNotifier {
 
           // Email precisa atualizar se é placeholder
           final emailAtual = existing.email;
-          if (emailAtual != email && (emailAtual.contains('@imported') || RegExp(r'^[a-z0-9]{15}@').hasMatch(emailAtual))) {
+          if (emailAtual != email &&
+              (emailAtual.contains('@imported') ||
+                  RegExp(r'^[a-z0-9]{15}@').hasMatch(emailAtual))) {
             updates['email'] = email;
             needsUpdate = true;
-            debugPrint('  → Atualizando email: $emailAtual → $email');
+            debugPrint(' → Atualizando email: $emailAtual → $email');
+          }
+
+          final serverIsAdmin = rec.getBoolValue('isAdmin');
+          if (existing.isAdmin != serverIsAdmin) {
+            updates['isAdmin'] = serverIsAdmin;
+            needsUpdate = true;
+            debugPrint(
+                ' → Atualizando isAdmin: ${existing.isAdmin} → $serverIsAdmin');
           }
 
           if (needsUpdate) {
             try {
               await _db.updateUsuario(
                 UsuariosCompanion(
-                  nome: updates.containsKey('nome') ? Value(updates['nome'] as String) : const Value.absent(),
-                  email: updates.containsKey('email') ? Value(updates['email'] as String) : const Value.absent(),
+                  nome: updates.containsKey('nome')
+                      ? Value(updates['nome'] as String)
+                      : const Value.absent(),
+                  email: updates.containsKey('email')
+                      ? Value(updates['email'] as String)
+                      : const Value.absent(),
+                  isAdmin: updates.containsKey('isAdmin')
+                      ? Value(updates['isAdmin'] as bool)
+                      : const Value.absent(),
                 ),
                 existing.uuid,
               );
@@ -687,26 +748,36 @@ class SyncService extends ChangeNotifier {
         // Novo usuário — insere (ou atualiza se já existe por uuid, ex.: criado noutro fluxo)
         final jaExistePorUuid = await _db.getUsuarioByUuid(serverId);
         if (jaExistePorUuid != null) {
-          bool needsUpdate = jaExistePorUuid.nome != nomeReal || jaExistePorUuid.email != email;
+          final serverIsAdmin = rec.getBoolValue('isAdmin');
+          bool needsUpdate = jaExistePorUuid.nome != nomeReal ||
+              jaExistePorUuid.email != email ||
+              jaExistePorUuid.isAdmin != serverIsAdmin;
           if (needsUpdate) {
             await _db.updateUsuario(
-              UsuariosCompanion(nome: Value(nomeReal), email: Value(email)),
+              UsuariosCompanion(
+                nome: Value(nomeReal),
+                email: Value(email),
+                isAdmin: Value(serverIsAdmin),
+              ),
               serverId,
             );
             atualizados++;
           }
           continue;
         }
+        final serverIsAdmin = rec.getBoolValue('isAdmin');
         await _db.insertUsuarioRaw(UsuariosCompanion.insert(
           uuid: serverId,
           nome: nomeReal,
           email: email,
-          senha: 'servidor', // Placeholder — não é plaintext real
+          senha: 'servidor',
+          isAdmin: Value(serverIsAdmin),
         ));
         novos++;
         debugPrint('  ✓ Novo usuário inserido: $email → nome=$nomeReal');
       }
-      debugPrint('pullUsuariosDoServidor: $novos novos usuários, $atualizados atualizados');
+      debugPrint(
+          'pullUsuariosDoServidor: $novos novos usuários, $atualizados atualizados');
       return novos;
     } catch (e) {
       debugPrint('Erro ao puxar usuários do servidor: $e');
@@ -735,7 +806,8 @@ class SyncService extends ChangeNotifier {
   }
 
   /// Extrai propriedade e UT de um registro: schema normalizado (expand) ou flat (campos texto).
-  void _parseParcelaHierarchy(RecordModel rec, List<String> outProp, List<String> outUt) {
+  void _parseParcelaHierarchy(
+      RecordModel rec, List<String> outProp, List<String> outUt) {
     if (_isNormalizedSchema(rec) && rec.expand != null) {
       final propRec = rec.expand!['ut.propriedade'];
       final utRec = rec.expand!['ut'];
@@ -773,12 +845,13 @@ class SyncService extends ChangeNotifier {
       // 1. Detectar schema (normalizado vs flat)
       bool useExpand = true;
       try {
-        final first = await _withRetry(() =>
-          _pb!.collection('parcelas').getList(
-            page: 1, perPage: 1,
-            filter: filter.isNotEmpty ? filter : null,
-            expand: 'ut,ut.propriedade',
-          ),
+        final first = await _withRetry(
+          () => _pb!.collection('parcelas').getList(
+                page: 1,
+                perPage: 1,
+                filter: filter.isNotEmpty ? filter : null,
+                expand: 'ut,ut.propriedade',
+              ),
         );
         if (first.items.isEmpty) return 0;
         if (!_isNormalizedSchema(first.items.first)) useExpand = false;
@@ -797,12 +870,13 @@ class SyncService extends ChangeNotifier {
           notifyListeners();
           return 0;
         }
-        final result = await _withRetry(() =>
-          _pb!.collection('parcelas').getList(
-            page: page, perPage: _pageSize,
-            filter: filter.isNotEmpty ? filter : null,
-            expand: useExpand ? 'ut,ut.propriedade' : null,
-          ),
+        final result = await _withRetry(
+          () => _pb!.collection('parcelas').getList(
+                page: page,
+                perPage: _pageSize,
+                filter: filter.isNotEmpty ? filter : null,
+                expand: useExpand ? 'ut,ut.propriedade' : null,
+              ),
         );
         parcelasServidor.addAll(result.items);
         hasMore = result.items.length == _pageSize;
@@ -858,7 +932,8 @@ class SyncService extends ChangeNotifier {
         }
 
         // B) Duplicata por conteúdo → remapear UUID
-        final dup = await _db.findParcelaDuplicada(propUt, idParcela, serverUser);
+        final dup =
+            await _db.findParcelaDuplicada(propUt, idParcela, serverUser);
         if (dup != null) {
           if (!dup.uuid.startsWith('pb-')) {
             try {
@@ -892,7 +967,11 @@ class SyncService extends ChangeNotifier {
 
         // D) Inserir nova parcela
         DateTime createdAt;
-        try { createdAt = DateTime.parse(rec.created); } catch (_) { createdAt = DateTime.now(); }
+        try {
+          createdAt = DateTime.parse(rec.created);
+        } catch (_) {
+          createdAt = DateTime.now();
+        }
 
         await _db.insertParcela(ParcelasCompanion.insert(
           uuid: parcelaUuid,
@@ -947,16 +1026,19 @@ class SyncService extends ChangeNotifier {
         final first = await _pb!.collection('parcelas').getList(perPage: 1);
         if (first.items.isEmpty) return [];
         if (!_isNormalizedSchema(first.items.first)) useExpand = false;
-      } catch (_) { useExpand = false; }
+      } catch (_) {
+        useExpand = false;
+      }
       final recs = <RecordModel>[];
       int page = 1;
       while (true) {
         if (!await hasInternet()) break;
         final r = await _withRetry(() => _pb!.collection('parcelas').getList(
-          page: page, perPage: _pageSize,
-          filter: 'user != ""',
-          expand: useExpand ? 'ut,ut.propriedade' : null,
-        ));
+              page: page,
+              perPage: _pageSize,
+              filter: 'user != ""',
+              expand: useExpand ? 'ut,ut.propriedade' : null,
+            ));
         recs.addAll(r.items);
         if (r.items.length < _pageSize) break;
         page++;
@@ -985,14 +1067,16 @@ class SyncService extends ChangeNotifier {
 
   /// Verifica conflitos: mesma (propriedade, UT, parcela) no servidor com outro utilizador.
   /// Retorna mensagens e o conjunto de chaves em conflito (para bloquear envio).
-  Future<({List<String> messages, Set<String> conflictKeys})> fetchConflitos({String? userId}) async {
+  Future<({List<String> messages, Set<String> conflictKeys})> fetchConflitos(
+      {String? userId}) async {
     const empty = (messages: <String>[], conflictKeys: <String>{});
     if (_pb == null || userId == null) return empty;
     try {
       final serverList = await fetchParcelasFeitasDoServidor();
       final serverKeyToUser = <String, String>{};
       for (final m in serverList) {
-        final key = '${m['propriedade'] ?? ''}|${m['propUt'] ?? ''}|${m['idParcela'] ?? ''}';
+        final key =
+            '${m['propriedade'] ?? ''}|${m['propUt'] ?? ''}|${m['idParcela'] ?? ''}';
         final u = m['user'] ?? '';
         if (u.isNotEmpty) serverKeyToUser[key] = u;
       }
@@ -1004,7 +1088,8 @@ class SyncService extends ChangeNotifier {
         final serverUser = serverKeyToUser[key];
         if (serverUser != null && serverUser != userId) {
           conflictKeys.add(key);
-          messages.add('${p.propriedade} · ${p.propUt} · Parcela ${p.idParcela}: outro utilizador no servidor.');
+          messages.add(
+              '${p.propriedade} · ${p.propUt} · Parcela ${p.idParcela}: outro utilizador no servidor.');
         }
       }
       return (messages: messages, conflictKeys: conflictKeys);
@@ -1083,8 +1168,10 @@ class SyncService extends ChangeNotifier {
   String _gerarNomeFotoParcela(Parcela parcela, int index) {
     final propUt = _sanitizeFileName(parcela.propUt);
     final dt = parcela.createdAt;
-    final data = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-    final hora = '${dt.hour.toString().padLeft(2, '0')}h${dt.minute.toString().padLeft(2, '0')}';
+    final data =
+        '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+    final hora =
+        '${dt.hour.toString().padLeft(2, '0')}h${dt.minute.toString().padLeft(2, '0')}';
     return '${propUt}_P${parcela.idParcela.toString().padLeft(2, '0')}_FotoParcela${(index + 1).toString().padLeft(2, '0')}_${data}_$hora.jpg';
   }
 
@@ -1093,8 +1180,10 @@ class SyncService extends ChangeNotifier {
   String _gerarNomeFotoPlanta(Parcela parcela, Planta planta, int index) {
     final propUt = _sanitizeFileName(parcela.propUt);
     final dt = planta.createdAt;
-    final data = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-    final hora = '${dt.hour.toString().padLeft(2, '0')}h${dt.minute.toString().padLeft(2, '0')}';
+    final data =
+        '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+    final hora =
+        '${dt.hour.toString().padLeft(2, '0')}h${dt.minute.toString().padLeft(2, '0')}';
     return '${propUt}_P${parcela.idParcela.toString().padLeft(2, '0')}_Planta${(index + 1).toString().padLeft(2, '0')}_C${planta.categoria}_${data}_$hora.jpg';
   }
 
@@ -1111,12 +1200,13 @@ class SyncService extends ChangeNotifier {
     if (name.isEmpty) return null;
     try {
       final list = await _pb!.collection('propriedades').getList(
-        page: 1,
-        perPage: 1,
-        filter: 'name = "${name.replaceAll('"', '\\"')}"',
-      );
+            page: 1,
+            perPage: 1,
+            filter: 'name = "${name.replaceAll('"', '\\"')}"',
+          );
       if (list.items.isNotEmpty) return list.items.first.id;
-      final created = await _pb!.collection('propriedades').create(body: {'name': name});
+      final created =
+          await _pb!.collection('propriedades').create(body: {'name': name});
       return created.id;
     } catch (_) {
       return null;
@@ -1129,10 +1219,10 @@ class SyncService extends ChangeNotifier {
     final escaped = utName.replaceAll('"', '\\"');
     try {
       final list = await _pb!.collection('uts').getList(
-        page: 1,
-        perPage: 1,
-        filter: 'propriedade = "$propriedadeId" && name = "$escaped"',
-      );
+            page: 1,
+            perPage: 1,
+            filter: 'propriedade = "$propriedadeId" && name = "$escaped"',
+          );
       if (list.items.isNotEmpty) return list.items.first.id;
       final created = await _pb!.collection('uts').create(body: {
         'propriedade': propriedadeId,
@@ -1144,15 +1234,48 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  /// Sincroniza uma parcela pelo UUID.
+  /// Público para uso em operações em lote.
+  Future<void> syncSingleParcela(String parcelaUuid) async {
+    final parcela = await _db.getParcelaByUuid(parcelaUuid);
+    if (parcela == null) {
+      throw Exception('Parcela não encontrada: $parcelaUuid');
+    }
+
+    if (_pb == null) {
+      throw Exception('Servidor não configurado');
+    }
+
+    if (!await hasInternet()) {
+      throw Exception('Sem conexão com a internet');
+    }
+
+    await _syncParcela(parcela);
+  }
+
+  /// Apaga uma parcela (soft delete local + tentativa no servidor).
+  /// Público para uso em operações em lote.
+  Future<void> deleteParcela(String parcelaUuid) async {
+    // Apagar no servidor se já estiver sincronizada
+    if (parcelaUuid.startsWith('pb-')) {
+      await deleteParcelaNoServidor(parcelaUuid);
+    }
+  }
+
   /// Sincroniza uma parcela individual.
   /// Preferência: schema normalizado (ut → uts → propriedades); fallback: flat (propriedade/prop_ut texto).
   Future<void> _syncParcela(Parcela parcela) async {
-    final propUtValido = parcela.propUt.trim().isEmpty ? 'Sem_Identificacao' : parcela.propUt.trim();
-    final propName = parcela.propriedade.trim().isEmpty ? 'Sem propriedade' : parcela.propriedade.trim();
+    final propUtValido = parcela.propUt.trim().isEmpty
+        ? 'Sem_Identificacao'
+        : parcela.propUt.trim();
+    final propName = parcela.propriedade.trim().isEmpty
+        ? 'Sem propriedade'
+        : parcela.propriedade.trim();
 
     Map<String, dynamic> parcelaBody;
     final propId = await _getOrCreatePropriedadeId(propName);
-    final utId = (propId != null) ? await _getOrCreateUtId(propId, propUtValido) : null;
+    final utId =
+        (propId != null) ? await _getOrCreateUtId(propId, propUtValido) : null;
     if (utId != null) {
       parcelaBody = {
         'ut': utId,
@@ -1205,7 +1328,8 @@ class SyncService extends ChangeNotifier {
       }
     }
 
-    final existingServerId = parcela.uuid.startsWith('pb-') ? parcela.uuid.substring(3) : null;
+    final existingServerId =
+        parcela.uuid.startsWith('pb-') ? parcela.uuid.substring(3) : null;
 
     final record = await _withRetry(() async {
       final freshFiles = <http.MultipartFile>[];
@@ -1218,18 +1342,31 @@ class SyncService extends ChangeNotifier {
       }
       if (existingServerId != null) {
         return _pb!.collection('parcelas').update(
-          existingServerId,
-          body: parcelaBody,
-          files: freshFiles,
-        );
+              existingServerId,
+              body: parcelaBody,
+              files: freshFiles,
+            );
       }
       return _pb!.collection('parcelas').create(
-        body: parcelaBody,
-        files: freshFiles,
-      );
+            body: parcelaBody,
+            files: freshFiles,
+          );
     });
 
     // 2. Enviar as plantas desta parcela — rastreia falhas individualmente
+    // Primeiro, coleta IDs das plantas existentes no servidor para deletar depois
+    final oldPlantaIds = <String>[];
+    try {
+      final existingPlantas = await _withRetry(
+        () => _pb!.collection('plantas').getFullList(
+              filter: 'parcela = "${record.id}"',
+            ),
+      );
+      oldPlantaIds.addAll(existingPlantas.map((r) => r.id));
+    } catch (e) {
+      debugPrint('Aviso: não foi possível buscar plantas existentes: $e');
+    }
+
     final plantas = await _db.getPlantasByParcela(parcela.uuid);
     bool allPlantasOk = true;
     final List<String> plantaErrors = [];
@@ -1271,9 +1408,9 @@ class SyncService extends ChangeNotifier {
             ));
           }
           return _pb!.collection('plantas').create(
-            body: plantaBody,
-            files: freshPlantaFiles,
-          );
+                body: plantaBody,
+                files: freshPlantaFiles,
+              );
         });
 
         await _db.marcarPlantaSynced(planta.uuid);
@@ -1284,14 +1421,21 @@ class SyncService extends ChangeNotifier {
       }
     }
 
-    // 3. Só marca tudo como synced se TODAS as plantas foram enviadas
+    // 3. Deleta plantas antigas do servidor (agora que novas já foram criadas)
+    for (final oldId in oldPlantaIds) {
+      try {
+        await _pb!.collection('plantas').delete(oldId);
+      } catch (_) {}
+    }
+
+    // 4. Só marca tudo como synced se TODAS as plantas foram enviadas
     if (allPlantasOk) {
       for (final foto in fotos) {
         await _db.marcarFotoSynced(foto.uuid);
       }
       await _db.marcarParcelaSynced(parcela.uuid);
 
-      // 4. Remapear UUID local para 'pb-{recordId}' (só para parcelas criadas localmente)
+      // 5. Remapear UUID local para 'pb-{recordId}' (só para parcelas criadas localmente)
       if (existingServerId == null) {
         try {
           await _db.remapParcelaUuid(parcela.uuid, 'pb-${record.id}');
@@ -1301,14 +1445,15 @@ class SyncService extends ChangeNotifier {
       }
 
       // Audita sync bem-sucedido
-      await _db.logAudit('sync_push', entityType: 'parcela',
-          entityUuid: parcela.uuid, userId: parcela.userId);
+      await _db.logAudit('sync_push',
+          entityType: 'parcela',
+          entityUuid: parcela.uuid,
+          userId: parcela.userId);
     } else {
       // Parcela subiu, mas plantas falharam — NÃO marca como synced
       throw Exception(
-        'Parcela ${parcela.idParcela} enviada, mas ${plantaErrors.length} '
-        'planta(s) falharam: ${plantaErrors.join("; ")}'
-      );
+          'Parcela ${parcela.idParcela} enviada, mas ${plantaErrors.length} '
+          'planta(s) falharam: ${plantaErrors.join("; ")}');
     }
   }
 
@@ -1318,8 +1463,8 @@ class SyncService extends ChangeNotifier {
     final serverId = parcelaUuid.substring(3);
     try {
       final plantas = await _pb!.collection('plantas').getFullList(
-        filter: 'parcela = "$serverId"',
-      );
+            filter: 'parcela = "$serverId"',
+          );
       for (final pl in plantas) {
         await _pb!.collection('plantas').delete(pl.id);
       }
@@ -1340,7 +1485,11 @@ class SyncService extends ChangeNotifier {
 
   /// Baixa fotos do servidor organizadas por usuário/parcela.
   /// Suporta schema normalizado e flat.
-  Future<String?> downloadFotosOrganizadas({String? userId, String? userName, String? propUt, String? parcelaServerId}) async {
+  Future<String?> downloadFotosOrganizadas(
+      {String? userId,
+      String? userName,
+      String? propUt,
+      String? parcelaServerId}) async {
     if (_pb == null || !_pb!.authStore.isValid) {
       final ok = await _tryAutoAuth();
       if (!ok) return null;
@@ -1359,11 +1508,11 @@ class SyncService extends ChangeNotifier {
       }
       final filter = filterParts.join(' && ');
 
-      final parcelas = await _withRetry(() =>
-        _pb!.collection('parcelas').getFullList(
-          filter: filter.isNotEmpty ? filter : null,
-          expand: 'ut',
-        ),
+      final parcelas = await _withRetry(
+        () => _pb!.collection('parcelas').getFullList(
+              filter: filter.isNotEmpty ? filter : null,
+              expand: 'ut',
+            ),
       );
 
       if (parcelas.isEmpty) return null;
@@ -1392,13 +1541,15 @@ class SyncService extends ChangeNotifier {
       for (final parcelaRecord in parcelas) {
         final propUtName = _getPropUtFromRecord(parcelaRecord);
         final idParcela = parcelaRecord.getIntValue('id_parcela');
-        final pastaName = _sanitizeFileName('${propUtName}_P${idParcela.toString().padLeft(2, '0')}');
+        final pastaName = _sanitizeFileName(
+            '${propUtName}_P${idParcela.toString().padLeft(2, '0')}');
 
         final parcelaDir = Directory('${exportDir.path}/$pastaName');
         parcelaDir.createSync(recursive: true);
 
         // Baixar fotos da parcela
-        final fotosParcela = parcelaRecord.getListValue<String>('fotos_parcela');
+        final fotosParcela =
+            parcelaRecord.getListValue<String>('fotos_parcela');
         for (int i = 0; i < fotosParcela.length; i++) {
           final fotoName = fotosParcela[i];
           try {
@@ -1414,10 +1565,10 @@ class SyncService extends ChangeNotifier {
         }
 
         // Baixar fotos das plantas dessa parcela
-        final plantas = await _withRetry(() =>
-          _pb!.collection('plantas').getFullList(
-            filter: 'parcela = "${parcelaRecord.id}"',
-          ),
+        final plantas = await _withRetry(
+          () => _pb!.collection('plantas').getFullList(
+                filter: 'parcela = "${parcelaRecord.id}"',
+              ),
         );
 
         for (final plantaRecord in plantas) {
@@ -1469,19 +1620,22 @@ class SyncService extends ChangeNotifier {
       if (_pendingCount > 0 && !_isSyncing && isConfigured) {
         final online = await hasInternet();
         if (online) {
-          debugPrint('Auto-sync periódico: $_pendingCount pendentes, sincronizando...');
+          debugPrint(
+              'Auto-sync periódico: $_pendingCount pendentes, sincronizando...');
           await autoSync();
         }
       }
     });
 
     // Sync imediato quando volta a ter conectividade
-    _connectivitySub = Connectivity().onConnectivityChanged.listen((result) async {
+    _connectivitySub =
+        Connectivity().onConnectivityChanged.listen((result) async {
       if (!result.contains(ConnectivityResult.none) &&
           _pendingCount > 0 &&
           !_isSyncing &&
           isConfigured) {
-        debugPrint('Conectividade restaurada: sincronizando $_pendingCount pendentes...');
+        debugPrint(
+            'Conectividade restaurada: sincronizando $_pendingCount pendentes...');
         // Pequeno delay para estabilizar a conexão
         await Future.delayed(const Duration(seconds: 3));
         await autoSync();
@@ -1507,19 +1661,21 @@ class SyncService extends ChangeNotifier {
     }
 
     try {
-      final records = await _withRetry(() =>
-        _pb!.collection('users').getFullList(filter: 'email = "$email"'),
+      final records = await _withRetry(
+        () => _pb!.collection('users').getFullList(filter: 'email = "$email"'),
       );
       if (records.isEmpty) return false;
 
-      // Atualiza campo 'is_admin' no PocketBase (se o campo existir)
-      // Como PocketBase users não tem 'is_admin' nativamente,
-      // o flag fica apenas local. Mas registramos no audit log.
+      final pbId = records.first.id;
+      await _withRetry(
+        () => _pb!.collection('users').update(pbId, body: {'isAdmin': isAdmin}),
+      );
+
       await _db.logAudit(
         isAdmin ? 'promote_admin' : 'demote_admin',
         entityType: 'usuario',
-        entityUuid: records.first.id,
-        details: 'email=$email',
+        entityUuid: pbId,
+        details: 'email=$email, isAdmin=$isAdmin',
       );
       return true;
     } catch (e) {
@@ -1542,11 +1698,12 @@ class SyncService extends ChangeNotifier {
       bool deletouAlgo = false;
 
       final possibleIds = <String>{uuid};
-      
+
       // Tenta encontrar o user no PB para pegar o PB record ID
       try {
-        final userRecords = await _withRetry(() =>
-          _pb!.collection('users').getFullList(filter: 'email = "$email"'),
+        final userRecords = await _withRetry(
+          () =>
+              _pb!.collection('users').getFullList(filter: 'email = "$email"'),
         );
         for (final u in userRecords) {
           possibleIds.add(u.id);
@@ -1556,16 +1713,18 @@ class SyncService extends ChangeNotifier {
       // Busca parcelas para cada possível ID
       for (final uid in possibleIds) {
         try {
-          final parcelas = await _withRetry(() =>
-            _pb!.collection('parcelas').getFullList(filter: 'user = "$uid"'),
+          final parcelas = await _withRetry(
+            () => _pb!
+                .collection('parcelas')
+                .getFullList(filter: 'user = "$uid"'),
           );
 
           for (final parcela in parcelas) {
             try {
-              final plantas = await _withRetry(() =>
-                _pb!.collection('plantas').getFullList(
-                  filter: 'parcela = "${parcela.id}"',
-                ),
+              final plantas = await _withRetry(
+                () => _pb!.collection('plantas').getFullList(
+                      filter: 'parcela = "${parcela.id}"',
+                    ),
               );
               for (final planta in plantas) {
                 try {
@@ -1588,8 +1747,9 @@ class SyncService extends ChangeNotifier {
 
       // Deleta o registro do usuário do PB
       try {
-        final userRecords = await _withRetry(() =>
-          _pb!.collection('users').getFullList(filter: 'email = "$email"'),
+        final userRecords = await _withRetry(
+          () =>
+              _pb!.collection('users').getFullList(filter: 'email = "$email"'),
         );
         for (final u in userRecords) {
           await _pb!.collection('users').delete(u.id);
@@ -1599,8 +1759,8 @@ class SyncService extends ChangeNotifier {
 
       if (deletouAlgo) {
         debugPrint('Dados de $email deletados do servidor com sucesso.');
-        await _db.logAudit('delete_user_server', entityType: 'usuario',
-            entityUuid: uuid, details: 'email=$email');
+        await _db.logAudit('delete_user_server',
+            entityType: 'usuario', entityUuid: uuid, details: 'email=$email');
       }
       return deletouAlgo;
     } catch (e) {

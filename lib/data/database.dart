@@ -68,6 +68,7 @@ class FotosParcela extends Table {
   TextColumn get compressedPath => text().nullable()();
   BoolColumn get synced => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
 }
 
 /// Tabela de auditoria — registra operações críticas no sistema.
@@ -104,13 +105,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         await m.createAll();
+        await _createIndexes(m);
       },
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
@@ -149,16 +151,50 @@ class AppDatabase extends _$AppDatabase {
         if (from < 9) {
           await m.addColumn(parcelas, parcelas.prontaParaSync);
         }
-        if (from < 10) {
-          await m.addColumn(parcelas, parcelas.createdBy);
-        }
-      },
+      if (from < 10) {
+        await m.addColumn(parcelas, parcelas.createdBy);
+      }
+      if (from < 11) {
+        // Re-seed: apaga seed antigo (múltiplas parcelas/UT) para re-inserir 1/UT
+        await (delete(plantas)..where((t) => t.parcelaUuid.like('seed-%'))).go();
+        await (delete(fotosParcela)..where((t) => t.parcelaUuid.like('seed-%'))).go();
+        await (delete(parcelas)..where((t) => t.uuid.like('seed-%'))).go();
+      }
+          if (from < 12) {
+            // Corrigir parcelas synced do servidor que ficaram com prontaParaSync=false
+            await (update(parcelas)
+              ..where((t) => t.synced.equals(true) & t.prontaParaSync.equals(false)))
+              .write(const ParcelasCompanion(prontaParaSync: Value(true)));
+          }
+      if (from < 13) {
+        await m.addColumn(fotosParcela, fotosParcela.deletedAt);
+      }
+if (from < 14) {
+    await _createIndexes(m);
+  }
+  if (from < 15) {
+    // v15: Adicionar índices para sincronização
+    await _createIndexes(m);
+  }
+},
       beforeOpen: (details) async {
         await _garantirAdminSeNecessario();
-        await _migrarPropriedadeDeProput();
         await _seedCatalogoEstatico();
       },
     );
+  }
+
+  Future<void> _createIndexes(Migrator m) async {
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_plantas_parcela_uuid ON plantas(parcela_uuid)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_fotos_parcela_uuid ON fotos_parcela(parcela_uuid)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_parcelas_user_id ON parcelas(user_id)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_parcelas_deleted_at ON parcelas(deleted_at)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_parcelas_created_by ON parcelas(created_by)');
+    // Índices para sincronização (usados em getParcelasNaoSincronizadas)
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_parcelas_synced ON parcelas(synced)');
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_parcelas_prontaParaSync ON parcelas(pronta_para_sync)');
+    // Índice composto para busca eficiente de parcelas não sincronizadas
+    await customStatement('CREATE INDEX IF NOT EXISTS idx_parcelas_sync_status ON parcelas(synced, pronta_para_sync, deleted_at)');
   }
 
   /// Migra senhas armazenadas em plaintext para formato hash (SHA-256 + salt).
@@ -213,193 +249,110 @@ class AppDatabase extends _$AppDatabase {
     // (tratado na lógica de registro)
   }
 
-  // ─── Catálogo estático de parcelas (origem: planilha de mapeamento) ───
+  // ─── Catálogo estático de parcelas (1 parcela por UT, 72 UTs únicas) ───
+  // Usuários adicionam mais parcelas pelo app conforme necessário.
+  static const String _catalogoCsv = '''DIMI0020;UT01;0.0;1
+DIMI0020;UT05;0.0;1
+DIMI0021;UT03;0.0;1
+GHGH0058;UT06;0.0;1
+GHGH0059;UT03;0.0;1
+GHGH0064;UT01;0.0;1
+GHGH0070;UT05;0.0;1
+GHGH0070;UT06;0.0;1
+GHGH0084;UT04;0.0;1
+GHGH0107;UT01;0.0;1
+GHGH0110;UT01;0.0;1
+GHGH0111;UT02;0.0;1
+GHGH0112;UT01;0.0;1
+GHGH0115;UT01;0.0;1
+GHGH0128;UT01;0.0;1
+GHGH0147;UT01;0.0;1
+GHGH0147;UT02;0.0;1
+GHGH0150;UT01;0.0;1
+GHGH0152;UT01;0.0;1
+GHGH0154;UT01;0.0;1
+GHGH0170;UT01;0.0;1
+GHGH0180;UT02;0.0;1
+GHGH0180;UT03;0.0;1
+GHGH0185;UT02;0.0;1
+GHGH0185;UT03;0.0;1
+GHGH0185;UT04;0.0;1
+GHGH0186;UT01;0.0;1
+GHGH0190;UT01;0.0;1
+GHGH0194;UT02;0.0;1
+GHGH0194;UT03;0.0;1
+GHGH0194;UT08;0.0;1
+GHGH0194;UT10;0.0;1
+GHGH0194;UT11;0.0;1
+GHGH0195;UT01;0.0;1
+GHGH0195;UT02;0.0;1
+GHGH0195;UT03;0.0;1
+GHGH0195;UT04;0.0;1
+GHGH0195;UT05;0.0;1
+GHGH0195;UT06;0.0;1
+GHGH0201;UT01;0.0;1
+GHGH0201;UT02;0.0;1
+GHGH0201;UT03;0.0;1
+GHGH0206;UT02;0.0;1
+GHGH0206;UT03;0.0;1
+GHGH0206;UT04;0.0;1
+SESE0007;UT08;0.0;1
+SESE0012;UT01;0.0;1
+SESE0012;UT02;0.0;1
+SESE0013;UT01;0.0;1
+SESE0014;UT01;0.0;1
+SESE0019;UT02;0.0;1
+SESE0022;UT01;0.0;1
+SESE0022;UT02;0.0;1
+SESE0026;UT01;0.0;1
+SESE0027;UT01;0.0;1
+SESE0027;UT02;0.0;1
+SESE0027;UT03;0.0;1
+SESE0027;UT04;0.0;1
+SESE0027;UT05;0.0;1
+VGVG0063;UT03;0.0;1
+VGVG0063;UT04;0.0;1
+VGVG0063;UT05;0.0;1
+VGVG0063;UT06;0.0;1
+VGVG0064;UT01;0.0;1
+VGVG0068;UT02;0.0;1
+VGVG0068;UT03;0.0;1
+VGVG0068;UT04;0.0;1
+VGVG0068;UT05;0.0;1
+VGVG0069;UT01;0.0;1
+VGVG0069;UT02;0.0;1
+VGVG0069;UT03;0.0;1
+VGVG0069;UT04;0.0;1''';
 
-  static const String _catalogoCsv = '''GHGH0206;UT03;0.0076;1
-GHGH0195;UT06;0.0128;1
-GHGH0206;UT03;0.0346;1
-VGVG0069;UT01;0.0461;1
-GHGH0206;UT03;0.0539;1
-GHGH0206;UT03;0.0559;1
-GHGH0185;UT03;0.0652;1
-VGVG0069;UT01;0.0671;1
-GHGH0064;UT01;0.0731;1
-GHGH0185;UT03;0.0946;1
-GHGH0185;UT03;0.0994;1
-GHGH0194;UT03;0.1045;1
-GHGH0147;UT02;0.1274;1
-VGVG0069;UT01;0.1338;1
-GHGH0154;UT01;0.1429;1
-GHGH0185;UT02;0.1459;1
-GHGH0185;UT03;0.1479;1
-GHGH0185;UT03;0.1506;1
-SESE0027;UT04;0.1561;1
-SESE0027;UT02;0.1582;1
-DIMI0021;UT03;0.1681;1
-GHGH0194;UT10;0.1819;1
-GHGH0059;UT03;0.1931;1
-VGVG0068;UT05;0.1986;1
-GHGH0128;UT01;0.2032;1
-VGVG0063;UT03;0.2065;1
-GHGH0185;UT03;0.216;1
-DIMI0020;UT05;0.2289;1
-GHGH0064;UT01;0.2312;1
-GHGH0194;UT02;0.2409;1
-GHGH0111;UT02;0.2477;1
-GHGH0180;UT03;0.2507;1
-GHGH0201;UT03;0.2516;1
-GHGH0154;UT01;0.2541;1
-GHGH0147;UT01;0.2684;1
-GHGH0111;UT02;0.274;1
-GHGH0112;UT01;0.2823;1
-GHGH0070;UT06;0.303;1
-GHGH0195;UT05;0.3103;1
-GHGH0111;UT02;0.3183;1
-GHGH0185;UT03;0.3189;1
-GHGH0185;UT03;0.3232;1
-VGVG0068;UT04;0.3334;1
-SESE0022;UT02;0.3587;1
-SESE0012;UT02;0.3643;1
-GHGH0059;UT03;0.3793;1
-GHGH0064;UT01;0.3906;1
-GHGH0170;UT01;0.407;1
-GHGH0115;UT01;0.4131;1
-GHGH0059;UT03;0.4207;1
-GHGH0147;UT02;0.4265;1
-GHGH0194;UT08;0.434;1
-GHGH0194;UT11;0.4377;1
-GHGH0107;UT01;0.4464;1
-GHGH0194;UT03;0.4478;1
-GHGH0194;UT03;0.4489;1
-VGVG0063;UT06;0.4742;1
-GHGH0110;UT01;0.4756;1
-GHGH0147;UT01;0.4959;1
-GHGH0206;UT02;0.5155;1
-GHGH0194;UT03;0.5213;1
-SESE0007;UT08;0.5519;1
-GHGH0201;UT01;0.5906;1
-GHGH0195;UT06;0.5916;1
-GHGH0195;UT02;0.5933;1
-GHGH0201;UT02;0.6022;5
-GHGH0150;UT01;0.6807;5
-DIMI0020;UT01;0.6252;5
-SESE0012;UT01;0.6935;5
-SESE0014;UT01;0.6944;5
-GHGH0185;UT02;0.7441;5
-SESE0007;UT08;0.7845;5
-GHGH0206;UT04;0.7954;5
-GHGH0185;UT03;0.8012;5
-GHGH0170;UT01;0.813;5
-GHGH0112;UT01;0.8157;5
-GHGH0058;UT06;0.8469;5
-GHGH0185;UT03;0.8574;5
-VGVG0063;UT03;0.8633;5
-SESE0026;UT01;0.8737;5
-VGVG0063;UT04;0.9009;5
-SESE0027;UT01;0.9062;5
-VGVG0068;UT03;0.9214;5
-SESE0026;UT01;0.9251;5
-GHGH0185;UT04;0.981;5
-VGVG0063;UT05;1.0129;5
-SESE0022;UT01;1.0137;5
-GHGH0180;UT02;1.0435;5
-GHGH0201;UT02;1.0719;5
-GHGH0070;UT05;1.1474;5
-GHGH0194;UT03;1.1805;5
-VGVG0068;UT02;1.2921;5
-GHGH0195;UT04;1.3081;5
-VGVG0069;UT02;1.3583;5
-GHGH0201;UT02;1.4748;5
-GHGH0194;UT02;1.4954;5
-GHGH0128;UT01;1.8942;5
-GHGH0084;UT04;1.8986;5
-GHGH0195;UT01;1.9635;5
-GHGH0190;UT01;1.9921;5
-SESE0014;UT01;1.9949;5
-GHGH0194;UT03;2.0053;6
-SESE0007;UT08;2.1358;6
-GHGH0180;UT03;2.1438;6
-GHGH0170;UT01;2.1639;6
-VGVG0064;UT01;2.2379;6
-GHGH0195;UT04;2.3955;6
-GHGH0152;UT01;2.6886;6
-VGVG0069;UT03;2.7069;6
-SESE0019;UT02;2.9368;6
-GHGH0194;UT10;2.9415;6
-GHGH0195;UT03;2.9642;6
-SESE0027;UT03;2.979;6
-SESE0013;UT01;3.1847;7
-GHGH0150;UT01;3.2828;7
-GHGH0194;UT03;3.2992;7
-GHGH0186;UT01;3.4542;7
-VGVG0069;UT04;3.9396;7
-GHGH0195;UT02;4.446;8
-SESE0027;UT05;4.8993;8
-SESE0022;UT01;8.3396;12
-SESE0027;UT01;8.5094;12
-GHGH0190;UT01;15.749;19''';
-
-  /// Popula o banco com o catálogo estático de parcelas (planilha de mapeamento).
+  /// Popula o banco com o catálogo estático: 1 parcela por UT.
   /// Idempotente: só roda se não existir nenhuma parcela com UUID 'seed-'.
+  /// NÃO apaga parcelas vindas do servidor (pb-); dados do servidor e seed coexistem.
   Future<void> _seedCatalogoEstatico() async {
     final probe = await (select(parcelas)
       ..where((t) => t.uuid.like('seed-%'))
       ..limit(1))
-      .get();
+    .get();
     if (probe.isNotEmpty) return;
 
-    // Limpar parcelas antigas vindas do servidor (pb-) para evitar duplicatas
-    final serverParcelas = await (select(parcelas)
-      ..where((t) => t.uuid.like('pb-%') & t.synced.equals(true)))
-      .get();
-    for (final p in serverParcelas) {
-      await (delete(plantas)..where((t) => t.parcelaUuid.equals(p.uuid))).go();
-      await (delete(fotosParcela)..where((t) => t.parcelaUuid.equals(p.uuid))).go();
-      await (delete(parcelas)..where((t) => t.uuid.equals(p.uuid))).go();
-    }
-
-    // Agrupar linhas do CSV por (propriedade, ut)
-    final groups = <String, List<(double area, int qtd)>>{};
-    final propMap = <String, String>{}; // key → propriedade
+    final now = DateTime.now();
     for (final line in _catalogoCsv.split('\n')) {
       if (line.trim().isEmpty) continue;
       final parts = line.split(';');
       if (parts.length < 4) continue;
       final prop = parts[0].trim();
       final ut = parts[1].trim();
-      final area = double.tryParse(parts[2].trim()) ?? 0;
-      final qtd = int.tryParse(parts[3].trim()) ?? 1;
-      final key = '$prop|$ut';
-      groups.putIfAbsent(key, () => []);
-      groups[key]!.add((area, qtd));
-      propMap[key] = prop;
-    }
-
-    final now = DateTime.now();
-    for (final entry in groups.entries) {
-      final keyParts = entry.key.split('|');
-      final prop = keyParts[0];
-      final ut = keyParts[1];
-      final rows = entry.value..sort((a, b) => a.$1.compareTo(b.$1));
-
-      int parcelaNum = 1;
-      for (final (area, qtd) in rows) {
-        for (int i = 0; i < qtd; i++) {
-          final uuid = 'seed-$prop-$ut-$parcelaNum';
-          await into(parcelas).insert(ParcelasCompanion.insert(
-            uuid: uuid,
-            propriedade: Value(prop),
-            propUt: ut,
-            idParcela: parcelaNum,
-            areaHa: Value(area),
-            userId: '',
-            synced: const Value(true),
-            createdAt: Value(now),
-            updatedAt: Value(now),
-          ));
-          parcelaNum++;
-        }
-      }
+      final uuid = 'seed-$prop-$ut-1';
+    await into(parcelas).insert(ParcelasCompanion.insert(
+      uuid: uuid,
+      propriedade: Value(prop),
+      propUt: ut,
+      idParcela: 1,
+      userId: '',
+      synced: const Value(true),
+      prontaParaSync: const Value(true),
+      createdAt: Value(now),
+      updatedAt: Value(now),
+    ));
     }
   }
 
@@ -436,7 +389,8 @@ GHGH0190;UT01;15.749;19''';
   /// Remove todas as parcelas sincronizadas (importadas do servidor).
   /// Preserva parcelas locais não sincronizadas (trabalho do utilizador).
   Future<void> deleteAllSyncedParcelas() async {
-    final synced = await (select(parcelas)..where((t) => t.synced.equals(true))).get();
+    final synced = await (select(parcelas)
+      ..where((t) => t.synced.equals(true) & t.deletedAt.isNull())).get();
     for (final p in synced) {
       await (delete(plantas)..where((t) => t.parcelaUuid.equals(p.uuid))).go();
       await (delete(fotosParcela)..where((t) => t.parcelaUuid.equals(p.uuid))).go();
@@ -508,27 +462,38 @@ GHGH0190;UT01;15.749;19''';
   /// Usado para reconciliar UUID local com o ID do PocketBase.
   Future<void> remapUsuarioUuid(String oldUuid, String newUuid) async {
     if (oldUuid == newUuid) return;
-    // 1. Atualizar parcelas que referenciam o UUID antigo
-    await (update(parcelas)..where((t) => t.userId.equals(oldUuid)))
-        .write(ParcelasCompanion(userId: Value(newUuid)));
-    // 2. Atualizar o UUID do próprio usuário
-    await (update(usuarios)..where((t) => t.uuid.equals(oldUuid)))
-        .write(UsuariosCompanion(uuid: Value(newUuid)));
+    await customStatement('BEGIN TRANSACTION');
+    try {
+      await (update(parcelas)..where((t) => t.userId.equals(oldUuid)))
+          .write(ParcelasCompanion(userId: Value(newUuid)));
+      await (update(parcelas)..where((t) => t.createdBy.equals(oldUuid)))
+          .write(ParcelasCompanion(createdBy: Value(newUuid)));
+      await (update(usuarios)..where((t) => t.uuid.equals(oldUuid)))
+          .write(UsuariosCompanion(uuid: Value(newUuid)));
+      await customStatement('COMMIT');
+    } catch (e) {
+      await customStatement('ROLLBACK');
+      rethrow;
+    }
   }
 
   /// Atualiza o UUID de uma parcela e cascata para plantas e fotos.
   /// Usado para mapear UUID local → PocketBase record ID após push.
   Future<void> remapParcelaUuid(String oldUuid, String newUuid) async {
     if (oldUuid == newUuid) return;
-    // 1. Atualizar plantas que referenciam a parcela
-    await (update(plantas)..where((t) => t.parcelaUuid.equals(oldUuid)))
-        .write(PlantasCompanion(parcelaUuid: Value(newUuid)));
-    // 2. Atualizar fotos que referenciam a parcela
-    await (update(fotosParcela)..where((t) => t.parcelaUuid.equals(oldUuid)))
-        .write(FotosParcelaCompanion(parcelaUuid: Value(newUuid)));
-    // 3. Atualizar o UUID da própria parcela
-    await (update(parcelas)..where((t) => t.uuid.equals(oldUuid)))
-        .write(ParcelasCompanion(uuid: Value(newUuid)));
+    await customStatement('BEGIN TRANSACTION');
+    try {
+      await (update(plantas)..where((t) => t.parcelaUuid.equals(oldUuid)))
+          .write(PlantasCompanion(parcelaUuid: Value(newUuid)));
+      await (update(fotosParcela)..where((t) => t.parcelaUuid.equals(oldUuid)))
+          .write(FotosParcelaCompanion(parcelaUuid: Value(newUuid)));
+      await (update(parcelas)..where((t) => t.uuid.equals(oldUuid)))
+          .write(ParcelasCompanion(uuid: Value(newUuid)));
+      await customStatement('COMMIT');
+    } catch (e) {
+      await customStatement('ROLLBACK');
+      rethrow;
+    }
   }
 
   /// Verifica se já existe parcela com mesmos (propUt, idParcela, userId).
@@ -600,15 +565,14 @@ GHGH0190;UT01;15.749;19''';
     DateTime? dataInicio,
     DateTime? dataFim,
   }) {
-    final query = select(parcelas)..where((t) => t.deletedAt.isNull());
-    if (isAdmin) {
-      // Admin vê apenas parcelas sincronizadas (vindas do servidor)
-      query.where((t) => t.synced.equals(true));
-    }
-    if (!isAdmin && userId != null) {
-      query.where((t) => t.userId.equals(userId));
-    }
-    if (propriedade != null && propriedade.isNotEmpty) {
+  final query = select(parcelas)..where((t) => t.deletedAt.isNull());
+  if (!isAdmin && userId != null) {
+    query.where((t) =>
+        t.createdBy.equals(userId) |
+        t.createdBy.equals('') |
+        t.userId.equals(userId));
+  }
+  if (propriedade != null && propriedade.isNotEmpty) {
       query.where((t) => t.propriedade.equals(propriedade));
     }
     if (propUt != null && propUt.isNotEmpty) {
@@ -618,9 +582,8 @@ GHGH0190;UT01;15.749;19''';
       query.where((t) => t.createdAt.isBiggerOrEqualValue(dataInicio));
     }
     if (dataFim != null) {
-      // Inclui todo o dia de dataFim
-      final fimDia = DateTime(dataFim.year, dataFim.month, dataFim.day, 23, 59, 59);
-      query.where((t) => t.createdAt.isSmallerOrEqualValue(fimDia));
+      final nextDay = DateTime(dataFim.year, dataFim.month, dataFim.day + 1);
+      query.where((t) => t.createdAt.isSmallerThanValue(nextDay));
     }
     query.orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     return query.get();
@@ -691,9 +654,12 @@ GHGH0190;UT01;15.749;19''';
   }
 
   /// Retorna a última parcela criada (para sugerir a próxima).
-  Future<Parcela?> getLastParcela({String? userId, String? propriedade, String? propUt}) async {
+  Future<Parcela?> getLastParcela({String? userId, bool isAdmin = false, String? propriedade, String? propUt}) async {
     final query = select(parcelas)..where((t) => t.deletedAt.isNull());
-    if (userId != null) query.where((t) => t.userId.equals(userId));
+    if (!isAdmin && userId != null) {
+      query.where((t) =>
+          t.createdBy.equals(userId) | t.createdBy.equals('') | t.userId.equals(userId));
+    }
     if (propriedade != null) query.where((t) => t.propriedade.equals(propriedade));
     if (propUt != null) query.where((t) => t.propUt.equals(propUt));
     query.orderBy([(t) => OrderingTerm.desc(t.idParcela)]);
@@ -726,8 +692,8 @@ GHGH0190;UT01;15.749;19''';
         .get();
   }
 
-  Future<Parcela?> getParcelaByUuid(String uuid) =>
-      (select(parcelas)..where((t) => t.uuid.equals(uuid))).getSingleOrNull();
+  Future<Parcela?> getParcelaByUuid(String uuid, {bool includeDeleted = false}) =>
+      (select(parcelas)..where((t) => t.uuid.equals(uuid) & (includeDeleted ? const Constant(true) : t.deletedAt.isNull()))).getSingleOrNull();
 
   Future<int> insertParcela(ParcelasCompanion parcela) =>
       into(parcelas).insert(parcela);
@@ -745,7 +711,10 @@ GHGH0190;UT01;15.749;19''';
   Stream<List<Parcela>> watchAllParcelas({String? userId, bool isAdmin = false}) {
     final query = select(parcelas)..where((t) => t.deletedAt.isNull());
     if (!isAdmin && userId != null) {
-      query.where((t) => t.userId.equals(userId));
+      query.where((t) =>
+        t.createdBy.equals(userId) |
+        t.createdBy.equals('') |
+        t.userId.equals(userId));
     }
     query.orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     return query.watch();
@@ -770,9 +739,9 @@ GHGH0190;UT01;15.749;19''';
 
   Future<List<Planta>> getPlantasByParcela(String parcelaUuid) =>
       (select(plantas)
-            ..where((t) => t.parcelaUuid.equals(parcelaUuid))
-            ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
-          .get();
+        ..where((t) => t.parcelaUuid.equals(parcelaUuid) & t.deletedAt.isNull())
+        ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+      .get();
 
   Future<int> insertPlanta(PlantasCompanion planta) =>
       into(plantas).insert(planta);
@@ -792,16 +761,21 @@ GHGH0190;UT01;15.749;19''';
 
   Stream<List<Planta>> watchPlantasByParcela(String parcelaUuid) =>
       (select(plantas)
-            ..where((t) => t.parcelaUuid.equals(parcelaUuid))
-            ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
-          .watch();
+        ..where((t) => t.parcelaUuid.equals(parcelaUuid) & t.deletedAt.isNull())
+        ..orderBy([(t) => OrderingTerm.asc(t.createdAt)]))
+        .watch();
 
   // ========== FOTOS PARCELA ==========
 
   Future<List<FotosParcelaData>> getFotosByParcela(String parcelaUuid) =>
       (select(fotosParcela)
-            ..where((t) => t.parcelaUuid.equals(parcelaUuid)))
-          .get();
+        ..where((t) => t.parcelaUuid.equals(parcelaUuid) & t.deletedAt.isNull()))
+      .get();
+
+  Stream<List<FotosParcelaData>> watchFotosByParcela(String parcelaUuid) =>
+      (select(fotosParcela)
+        ..where((t) => t.parcelaUuid.equals(parcelaUuid) & t.deletedAt.isNull()))
+      .watch();
 
   Future<int> insertFotoParcela(FotosParcelaCompanion foto) =>
       into(fotosParcela).insert(foto);
@@ -819,36 +793,53 @@ GHGH0190;UT01;15.749;19''';
           .write(const FotosParcelaCompanion(synced: Value(true)));
 
   Future<List<FotosParcelaData>> getFotosNaoSincronizadas() =>
-      (select(fotosParcela)..where((t) => t.synced.equals(false))).get();
+      (select(fotosParcela)..where((t) => t.synced.equals(false) & t.deletedAt.isNull())).get();
 
   // ========== SOFT-DELETE ==========
 
   /// Soft-deleta uma parcela (marca deletedAt + deletedBy, não remove do DB).
   Future<void> softDeleteParcela(String uuid, {String? deletedBy}) async {
     final now = DateTime.now();
-    await (update(parcelas)..where((t) => t.uuid.equals(uuid)))
-        .write(ParcelasCompanion(
-      deletedAt: Value(now),
-      deletedBy: Value(deletedBy),
-    ));
-    // Soft-delete plantas da parcela
-    await (update(plantas)..where((t) => t.parcelaUuid.equals(uuid)))
-        .write(PlantasCompanion(deletedAt: Value(now)));
-    // Audita
+    await customStatement('BEGIN TRANSACTION');
+    try {
+      await (update(parcelas)..where((t) => t.uuid.equals(uuid)))
+          .write(ParcelasCompanion(
+        deletedAt: Value(now),
+        deletedBy: Value(deletedBy),
+      ));
+      await (update(plantas)..where((t) => t.parcelaUuid.equals(uuid) & t.deletedAt.isNull()))
+          .write(PlantasCompanion(deletedAt: Value(now)));
+      await (update(fotosParcela)..where((t) => t.parcelaUuid.equals(uuid) & t.deletedAt.isNull()))
+          .write(FotosParcelaCompanion(deletedAt: Value(now)));
+      await customStatement('COMMIT');
+    } catch (e) {
+      await customStatement('ROLLBACK');
+      rethrow;
+    }
     await logAudit('soft_delete_parcela', entityType: 'parcela',
         entityUuid: uuid, userId: deletedBy);
   }
 
   /// Restaura uma parcela soft-deletada.
   Future<void> restaurarParcela(String uuid) async {
-    await (update(parcelas)..where((t) => t.uuid.equals(uuid)))
-        .write(const ParcelasCompanion(
-      deletedAt: Value(null),
-      deletedBy: Value(null),
-    ));
-    // Restaura plantas da parcela
-    await (update(plantas)..where((t) => t.parcelaUuid.equals(uuid)))
-        .write(const PlantasCompanion(deletedAt: Value(null)));
+    final parcela = await getParcelaByUuid(uuid, includeDeleted: true);
+    if (parcela == null || parcela.deletedAt == null) return;
+    final deletedAtTs = parcela.deletedAt!;
+    await customStatement('BEGIN TRANSACTION');
+    try {
+      await (update(parcelas)..where((t) => t.uuid.equals(uuid)))
+          .write(const ParcelasCompanion(
+        deletedAt: Value(null),
+      ));
+      await (update(plantas)..where((t) => t.parcelaUuid.equals(uuid) & t.deletedAt.equals(deletedAtTs)))
+          .write(const PlantasCompanion(deletedAt: Value(null)));
+      await (update(fotosParcela)..where((t) => t.parcelaUuid.equals(uuid) & t.deletedAt.equals(deletedAtTs)))
+          .write(const FotosParcelaCompanion(deletedAt: Value(null)));
+      await customStatement('COMMIT');
+    } catch (e) {
+      await customStatement('ROLLBACK');
+      rethrow;
+    }
     await logAudit('restore_parcela', entityType: 'parcela', entityUuid: uuid);
   }
 
@@ -856,7 +847,8 @@ GHGH0190;UT01;15.749;19''';
   Future<List<Parcela>> getParcelasDeletadas({String? userId, bool isAdmin = false}) {
     final query = select(parcelas)..where((t) => t.deletedAt.isNotNull());
     if (!isAdmin && userId != null) {
-      query.where((t) => t.userId.equals(userId));
+      query.where((t) =>
+          t.createdBy.equals(userId) | t.createdBy.equals('') | t.userId.equals(userId));
     }
     query.orderBy([(t) => OrderingTerm.desc(t.deletedAt)]);
     return query.get();
@@ -908,7 +900,9 @@ GHGH0190;UT01;15.749;19''';
   /// Verifica se existe algum usuário no sistema (first-run check).
   Future<bool> hasAnyUser() async {
     final count = usuarios.id.count();
-    final query = selectOnly(usuarios)..addColumns([count]);
+    final query = selectOnly(usuarios)
+      ..addColumns([count])
+      ..where(usuarios.ativo.equals(true));
     final result = await query.getSingle();
     return (result.read(count) ?? 0) > 0;
   }

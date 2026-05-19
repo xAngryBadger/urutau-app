@@ -992,7 +992,7 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
     final currentUser = context.read<SyncService>().currentUser!;
     final prop = _propriedadeController.text.trim();
     final ut = _propUtController.text.trim();
-    final idParcela = int.parse(_idParcelaController.text.trim());
+    final idParcela = int.tryParse(_idParcelaController.text.trim()) ?? 0;
 
     if (!_isEditing) {
       final existente = await _db.findParcelaDisponivel(prop, ut, idParcela);

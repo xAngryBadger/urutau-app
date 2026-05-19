@@ -13,6 +13,7 @@ class SecureStorageService {
   // Keys
   static const keyCurrentPassword = 'current_user_password';
   static const keyAuthToken = 'auth_token';
+  static const keyIsAdmin = 'current_user_is_admin';
 
   /// Armazena um valor de forma segura.
   static Future<void> write(String key, String value) async {
@@ -51,6 +52,7 @@ class SecureStorageService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(keyCurrentPassword);
       await prefs.remove(keyAuthToken);
+      await prefs.remove(keyIsAdmin);
     } else {
       await _storage.deleteAll();
     }
@@ -75,6 +77,13 @@ class SecureStorageService {
     if (token != null && token.isNotEmpty) {
       await _storage.write(key: keyAuthToken, value: token);
       await prefs.remove('auth_token');
+    }
+
+    // Migra isAdmin flag
+    final isAdmin = prefs.getBool('current_user_is_admin');
+    if (isAdmin != null) {
+      await _storage.write(key: keyIsAdmin, value: isAdmin.toString());
+      await prefs.remove('current_user_is_admin');
     }
   }
 }

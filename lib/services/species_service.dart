@@ -90,18 +90,28 @@ class SpeciesService {
     return items;
   }
 
-  /// Filtra espécies: [query] normalizado; [useNomePopular] escolhe o campo a filtrar.
-  /// Retorna itens cujo campo exibido começa com a query ou contém palavra que começa com a query.
+  /// Filtra espécies: [query] normalizado; [useNomePopular] escolhe o campo a exibir.
+  /// Busca em AMBOS os campos (popular E científico) independente do modo de exibição.
+  /// Retorna itens cujo nome popular OU científico corresponde à query.
   static List<EspecieItem> filter(List<EspecieItem> list, String query, bool useNomePopular) {
     final q = normalize(query);
     if (q.isEmpty) return list;
     return list.where((e) {
-      final display = normalize(e.display(useNomePopular));
-      if (display.startsWith(q)) return true;
-      final words = display.split(' ');
-      for (final w in words) {
+      // Buscar em ambos os nomes
+      final popular = normalize(e.nomePopular);
+      final cientifico = normalize(e.nomeCientifico);
+      
+      // Verificar se começa com a query em qualquer um dos nomes
+      if (popular.startsWith(q) || cientifico.startsWith(q)) return true;
+      
+      // Verificar palavras individuais em ambos os nomes
+      final palavrasPopular = popular.split(' ');
+      final palavrasCientifico = cientifico.split(' ');
+      
+      for (final w in [...palavrasPopular, ...palavrasCientifico]) {
         if (w.startsWith(q)) return true;
       }
+      
       return false;
     }).toList();
   }

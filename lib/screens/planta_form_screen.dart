@@ -704,7 +704,9 @@ class _PlantaFormScreenState extends State<PlantaFormScreen> {
       categoria: cat,
       fotoEspeciePath: _fotoPath,
       synced: false,
-      createdAt: DateTime.now(),
+      createdAt: _isEditing && widget.existingPlanta != null
+          ? widget.existingPlanta!.createdAt
+          : DateTime.now(),
     );
 
     if (mounted) {

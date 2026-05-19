@@ -1,4 +1,4 @@
-name: inventario_florestal
+name: inventario_pro
 description: "App de inventário florestal para coleta de dados em campo"
 publish_to: "none"
 version: 2.0.0+2
@@ -56,6 +56,9 @@ dependencies:
 
   # Backup: escolher ficheiro para restaurar
   file_picker: ^8.0.0
+
+  # Gráficos e estatísticas
+  fl_chart: ^0.68.0
 
 dev_dependencies:
   flutter_test:

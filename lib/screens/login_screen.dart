@@ -126,9 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (usuario != null) {
         // Salva sessão local
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('current_user_uuid', usuario.uuid);
-        await prefs.setString('current_user_name', usuario.nome);
-        await prefs.setBool('current_user_is_admin', usuario.isAdmin);
+    await prefs.setString('current_user_uuid', usuario.uuid);
+    await prefs.setString('current_user_name', usuario.nome);
+    await SecureStorageService.write(SecureStorageService.keyIsAdmin, usuario.isAdmin.toString());
         // Marca que wizard já foi visto (não mostra novamente mesmo se dados forem limpos)
         await prefs.setBool('first_run_wizard_skipped', true);
         // Senha vai para secure storage (não SharedPreferences)
@@ -140,11 +140,11 @@ class _LoginScreenState extends State<LoginScreen> {
         final syncService = context.read<SyncService>();
         await syncService.setCurrentUser(usuario, password: _senhaController.text);
 
-        if (mounted) {
-          // Primeiro login: catálogo inicial. Logins seguintes: atualiza estado (outras parcelas).
-          final seeded = await syncService.ensureCatalogSeeded();
-          if (!seeded) {
-            final retry = await showDialog<bool>(
+  if (mounted) {
+      final seeded = await syncService.ensureCatalogSeeded();
+      if (!mounted) return;
+      if (!seeded) {
+        final retry = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
               builder: (ctx) => AlertDialog(
@@ -172,20 +172,21 @@ class _LoginScreenState extends State<LoginScreen> {
           }
 
           // Atualizar catálogo em logins seguintes (estado das outras parcelas)
-          if (await syncService.hasInternet()) {
-            syncService.pullDadosDoServidor().then((_) {
-              syncService.refreshPendingCount();
-            });
-          }
+    if (await syncService.hasInternet()) {
+      syncService.pullDadosDoServidor().then((_) {
+        syncService.refreshPendingCount();
+      });
+    }
 
-          // Modo utilizador: todos vão para o explorer
-          Navigator.of(context).pushReplacementNamed('/explorer');
-        }
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/explorer');
+  }
       } else {
         // Mensagem mais informativa
         final syncService = context.read<SyncService>();
-        final online = syncService.isConfigured && await syncService.hasInternet();
-        if (online) {
+    final online = syncService.isConfigured && await syncService.hasInternet();
+    if (!mounted) return;
+    if (online) {
           setState(() => _errorMessage = 'Email ou senha incorretos.');
         } else {
           setState(() => _errorMessage = 'Conta não encontrada localmente e sem internet para verificar o servidor.');

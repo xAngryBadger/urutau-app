@@ -35,8 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
     final syncService = context.read<SyncService>();
     final user = syncService.currentUser;
     if (user != null) {
-      // Foco em modo utilizador: todos vão para o explorer (admin injetado fora do app)
-      Navigator.of(context).pushReplacementNamed('/explorer');
+      Navigator.of(context).pushReplacementNamed('/main');
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
     }

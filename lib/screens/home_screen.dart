@@ -693,6 +693,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final myId = syncService.currentUser?.uuid ?? '';
     final incompletas = myId.isEmpty ? <Parcela>[] : await _db.getParcelasIncompletas(myId);
+    if (!mounted) return;
     final pendingBefore = syncService.pendingCount;
 
     // Diálogo de confirmação antes de sincronizar

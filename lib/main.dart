@@ -1,57 +1,76 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'data/database.dart';
 import 'services/backup_service.dart';
 import 'services/sync_service.dart';
-import 'services/theme_provider.dart';
+import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/parcela_form_screen.dart';
-import 'screens/settings_screen.dart';
-import 'screens/admin_screen.dart';
-import 'screens/explorer_screen.dart';
+import 'screens/login_screen_pro.dart';
+import 'screens/main_screen.dart';
+import 'screens/parcel_detail_screen_pro.dart';
+import 'screens/planta_form_screen.dart';
+import 'screens/photo_gallery_screen_pro.dart';
+import 'screens/settings_screen_pro.dart';
+import 'screens/register_screen_pro.dart';
+import 'screens/hierarchy_screen_pro.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await BackupService.runPendingRestore();
+  try {
+    await BackupService.runPendingRestore();
 
-  final db = AppDatabase();
-  final syncService = SyncService(db);
-  final themeProvider = ThemeProvider();
+    final db = AppDatabase();
+    final syncService = SyncService(db);
 
-  await Future.wait([
-    syncService.init(),
-    themeProvider.init(),
-  ]);
+    await syncService.init();
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: syncService),
-        ChangeNotifierProvider.value(value: themeProvider),
-      ],
-      child: const InventarioApp(),
-    ),
-  );
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: syncService),
+        ],
+        child: const InventarioProApp(),
+      ),
+    );
+  } catch (e, st) {
+    debugPrint('ERRO FATAL NO STARTUP: $e\n$st');
+    runApp(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text('Erro ao iniciar o app', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  Text('$e', textAlign: TextAlign.center, style: const TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class InventarioApp extends StatelessWidget {
-  const InventarioApp({super.key});
+class InventarioProApp extends StatelessWidget {
+  const InventarioProApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-
-    final isHighContrast = themeProvider.isHighContrast;
     return MaterialApp(
-      title: 'Inventário Florestal',
+      title: 'Inventário Pro',
       debugShowCheckedModeBanner: false,
-      theme: themeProvider.theme,
-      // Sempre sem animação de tema para evitar queda de FPS ao ligar/desligar contraste
-      themeAnimationDuration: Duration.zero,
-      themeAnimationCurve: Curves.easeInOut,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.light,
       initialRoute: '/',
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -61,22 +80,17 @@ class InventarioApp extends StatelessWidget {
             );
           case '/login':
             return MaterialPageRoute(
-              builder: (_) => const LoginScreen(),
+              builder: (_) => const LoginScreenPro(),
             );
-          case '/home':
+          case '/main':
             return MaterialPageRoute(
-              builder: (_) => const HomeScreen(),
-            );
-          case '/explorer':
-            return MaterialPageRoute(
-              builder: (_) => const ExplorerScreen(),
+              builder: (_) => const MainScreen(),
             );
           case '/parcela/nova':
-            // Aceita Map com propriedade, propUt, nextParcela pré-preenchidos
             final args = settings.arguments;
             if (args is Map<String, dynamic>) {
               return MaterialPageRoute(
-                builder: (_) => ParcelaFormScreen(
+                builder: (_) => ParcelDetailScreenPro(
                   prefilledPropriedade: args['propriedade'] as String?,
                   prefilledPropUt: args['propUt'] as String?,
                   prefilledNextParcela: args['nextParcela'] as int?,
@@ -84,36 +98,63 @@ class InventarioApp extends StatelessWidget {
               );
             }
             return MaterialPageRoute(
-              builder: (_) => const ParcelaFormScreen(),
+              builder: (_) => const ParcelDetailScreenPro(),
             );
           case '/parcela/editar':
             final args = settings.arguments;
             if (args is String) {
               return MaterialPageRoute(
-                builder: (_) => ParcelaFormScreen(parcelaUuid: args),
+                builder: (_) => ParcelDetailScreenPro(parcelaUuid: args),
               );
             }
             if (args is Map<String, dynamic>) {
               final uuid = args['uuid'] as String? ?? args['parcelaUuid'] as String?;
               final readOnly = args['readOnly'] == true;
               return MaterialPageRoute(
-                builder: (_) => ParcelaFormScreen(parcelaUuid: uuid, readOnly: readOnly),
+                builder: (_) => ParcelDetailScreenPro(
+                  parcelaUuid: uuid,
+                  readOnly: readOnly,
+                ),
               );
             }
             return MaterialPageRoute(
-              builder: (_) => const ParcelaFormScreen(),
+              builder: (_) => const ParcelDetailScreenPro(),
             );
-          case '/settings':
+          case '/planta/nova':
+            final args = settings.arguments;
+            if (args is String) {
+              return MaterialPageRoute(
+                builder: (_) => PlantaFormScreen(parcelaUuid: args),
+              );
+            }
             return MaterialPageRoute(
-              builder: (_) => const SettingsScreen(),
+              builder: (_) => const Scaffold(
+                body: Center(child: Text('Erro: UUID da parcela não fornecido')),
+              ),
             );
-          case '/admin':
+        case '/settings':
+          return MaterialPageRoute(
+            builder: (_) => const SettingsScreenPro(),
+          );
+        case '/gallery':
+          return MaterialPageRoute(
+            builder: (_) => const PhotoGalleryScreenPro(),
+          );
+        case '/register':
+          return MaterialPageRoute(
+            builder: (_) => const RegisterScreenPro(),
+          );
+        case '/explorer':
+          return MaterialPageRoute(
+            builder: (_) => const MainScreen(),
+          );
+        case '/home':
+          return MaterialPageRoute(
+            builder: (_) => const MainScreen(),
+          );
+        default:
             return MaterialPageRoute(
-              builder: (_) => const AdminScreen(),
-            );
-          default:
-            return MaterialPageRoute(
-              builder: (_) => const LoginScreen(),
+              builder: (_) => const LoginScreenPro(),
             );
         }
       },
