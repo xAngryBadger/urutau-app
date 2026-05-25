@@ -208,9 +208,9 @@ class ExportService {
       // 5. Nome do arquivo
       final now = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
       final prefix = nomeUsuario != null
-          ? 'inventario_${_sanitize(nomeUsuario)}'
-          : 'inventario_completo';
-      final fileName = '${prefix}_$now.xlsx';
+? 'urutau_${_sanitize(nomeUsuario)}'
+      : 'urutau_completo';
+    final fileName = '${prefix}_$now.xlsx';
 
       // 6. Entregar ao usuário
       if (kIsWeb) {
@@ -407,7 +407,7 @@ class ExportService {
                 ),
                 pw.SizedBox(height: 24),
                 pw.Text(
-                  'Inventário Florestal',
+                  'Urutau',
                   style: pw.TextStyle(
                     fontSize: 28,
                     fontWeight: pw.FontWeight.bold,
@@ -566,9 +566,9 @@ class ExportService {
       final pdfBytes = await pdf.save();
       final fileNameTs = DateFormat('yyyy-MM-dd_HHmm').format(now);
       final prefix = nomeUsuario != null
-          ? 'inventario_${_sanitize(nomeUsuario)}'
-          : 'inventario_completo';
-      final fileName = '${prefix}_$fileNameTs.pdf';
+? 'urutau_${_sanitize(nomeUsuario)}'
+      : 'urutau_completo';
+    final fileName = '${prefix}_$fileNameTs.pdf';
 
       if (kIsWeb) {
         download.downloadFileBytes(pdfBytes.toList(), fileName);
@@ -599,7 +599,7 @@ class ExportService {
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
           pw.Text(
-            'Inventário Florestal — $section',
+            'Urutau — $section',
             style: pw.TextStyle(
               fontSize: 12,
               fontWeight: pw.FontWeight.bold,

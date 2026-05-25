@@ -1,4 +1,4 @@
-package com.inventarioflorestal.inventario_florestal
+package com.urutau.app
 
 import io.flutter.embedding.android.FlutterActivity
 

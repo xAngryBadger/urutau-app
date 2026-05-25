@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../services/sync_service.dart';
 
-/// Splash screen com animação Lottie de árvore.
-/// Exibida por ~3 segundos antes de navegar ao destino adequado.
+/// Splash screen com imagem completa do Urutau.
+/// Exibida por ~2.5 segundos antes de navegar ao destino adequado.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -12,92 +11,42 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
+class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    );
-
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        _navigate();
-      }
-    });
+    // Navega imediatamente (sem delay)
+    _navigate();
   }
 
   Future<void> _navigate() async {
     final syncService = context.read<SyncService>();
     final user = syncService.currentUser;
     if (user != null) {
-      Navigator.of(context).pushReplacementNamed('/main');
+      Navigator.of(context).pushReplacementNamed('/home');
     } else {
       Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF304d36),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animação Lottie
-            SizedBox(
-              width: 220,
-              height: 220,
-              child: Lottie.asset(
-                'assets/animations/tree.json',
-                controller: _controller,
-                onLoaded: (composition) {
-                  _controller.forward();
-                },
-                errorBuilder: (ctx, error, stackTrace) {
-                  // Fallback se a animação falhar
-                  Future.delayed(const Duration(seconds: 2), () {
-                    if (mounted) {
-                      _navigate();
-                    }
-                  });
-                  return const Icon(
-                    Icons.forest,
-                    size: 120,
-                    color: Color(0xFFFFD54F),
-                  );
-                },
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Image.asset(
+          'assets/images/urutau_real.png',
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, error, stackTrace) {
+            return const Center(
+              child: Icon(
+                Icons.forest,
+                size: 120,
+                color: Color(0xFF5A6B5C),
               ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Inventário',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const Text(
-              'Florestal',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFFFD54F),
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

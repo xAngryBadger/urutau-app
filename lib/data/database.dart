@@ -95,7 +95,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase() {
     _instance ??= AppDatabase._internal(
       driftDatabase(
-        name: 'inventario_florestal',
+        name: 'urutau',
         web: DriftWebOptions(
             sqlite3Wasm: Uri.parse('sqlite3.wasm'),
             driftWorker: Uri.parse('drift_worker.js')),

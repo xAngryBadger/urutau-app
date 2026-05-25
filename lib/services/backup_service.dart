@@ -10,11 +10,11 @@ import 'package:intl/intl.dart';
 /// - Exportar: copia o SQLite para um ficheiro e partilha (Guardar em Downloads/Drive).
 /// - Restaurar: escolhe um ficheiro; na próxima abertura do app o banco é substituído.
 class BackupService {
-  static const String _dbName = 'inventario_florestal';
+  static const String _dbName = 'urutau';
   static const String _pendingRestoreKey = 'pending_restore';
   static const String _pendingRestorePathKey = 'pending_restore_path';
 
-  /// Caminho do ficheiro da base de dados (drift_flutter: documents/inventario_florestal.sqlite).
+  /// Caminho do ficheiro da base de dados (drift_flutter: documents/urutau.sqlite).
   static Future<String> get _dbPath async {
     final dir = await getApplicationDocumentsDirectory();
     return p.join(dir.path, '$_dbName.sqlite');
@@ -53,12 +53,12 @@ class BackupService {
       }
       final dir = await getApplicationDocumentsDirectory();
       final now = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
-      final fileName = 'inventario_florestal_backup_$now.sqlite';
+      final fileName = 'urutau_backup_$now.sqlite';
       final destPath = p.join(dir.path, fileName);
       final dest = await source.copy(destPath);
       await Share.shareXFiles(
         [XFile(dest.path)],
-        subject: 'Backup Inventário Florestal',
+        subject: 'Backup Urutau',
         text: 'Guarde este ficheiro. Pode usar "Restaurar de backup" no app após reinstalar.',
       );
       try {

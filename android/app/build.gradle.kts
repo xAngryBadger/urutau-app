@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.inventarioflorestal.inventario_florestal"
+    namespace = "com.urutau.app"
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
@@ -18,7 +18,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.inventarioflorestal.inventario_florestal"
+        applicationId = "com.urutau.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

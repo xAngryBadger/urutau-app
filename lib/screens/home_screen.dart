@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text('Inventário Florestal'),
+            const Text('Urutau'),
             if (syncService.currentUser != null)
               Text(
                 syncService.currentUser!.nome,

@@ -33,17 +33,17 @@ class ThemeProvider extends ChangeNotifier {
   // ──────────────────────────── TEMA CLARO (padrão) ────────────────────────── //
   static final ThemeData _lightTheme = ThemeData(
     colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF304d36),
-      primary: const Color(0xFF304d36),
-      secondary: const Color(0xFF527F4D),
+      seedColor: const Color(0xFF5A6B5C),
+      primary: const Color(0xFF5A6B5C),
+      secondary: const Color(0xFFC4A47C),
       brightness: Brightness.light,
     ),
     useMaterial3: true,
-    scaffoldBackgroundColor: const Color(0xFFF5F5F5),
+    scaffoldBackgroundColor: const Color(0xFFF9F6F0),
     appBarTheme: const AppBarTheme(
       centerTitle: true,
       elevation: 2,
-      backgroundColor: Color(0xFF304d36),
+      backgroundColor: Color(0xFF5A6B5C),
       foregroundColor: Colors.white,
       titleTextStyle: TextStyle(
         color: Colors.white,
@@ -55,14 +55,14 @@ class ThemeProvider extends ChangeNotifier {
       style: FilledButton.styleFrom(
         minimumSize: const Size(0, 52),
         textStyle: const TextStyle(fontSize: 16),
-        backgroundColor: const Color(0xFF304d36),
+        backgroundColor: const Color(0xFF5A6B5C),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         minimumSize: const Size(0, 52),
         textStyle: const TextStyle(fontSize: 16),
-        backgroundColor: const Color(0xFF304d36),
+        backgroundColor: const Color(0xFF5A6B5C),
         foregroundColor: Colors.white,
       ),
     ),

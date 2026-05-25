@@ -207,8 +207,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final isHC = themeProvider.isHighContrast;
     final primaryColor = Theme.of(context).colorScheme.primary;
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final onBg = isHC ? Colors.white : const Color(0xFF304d36);
-    final fieldFill = isHC ? const Color(0xFF111111) : Colors.grey[50];
+    final onBg = isHC ? Colors.white : const Color(0xFF2C3E2E);
+    final fieldFill = isHC ? const Color(0xFF111111) : const Color(0xFFF9F6F0);
 
     return Scaffold(
       body: SafeArea(
@@ -235,49 +235,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Logo
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isHC ? const Color(0xFF1A1500) : const Color(0xFF304d36),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
-                            errorBuilder: (ctx, err, st) => Icon(
-                              Icons.forest,
-                              size: 64,
-                              color: isHC ? const Color(0xFFFFD600) : const Color(0xFFFFD54F),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Título
-                      Text(
-                        'Inventário',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: onBg,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Florestal',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: onBg,
-                        ),
-                      ),
-                      const SizedBox(height: 48),
+        // Logo do Urutau (apenas o logo, sem caixa)
+        Image.asset(
+          'assets/images/urutau_real.png',
+          width: 220,
+          height: 220,
+          fit: BoxFit.contain,
+          errorBuilder: (ctx, err, st) => Icon(
+            Icons.forest,
+            size: 64,
+            color: isHC ? const Color(0xFFFFD600) : const Color(0xFF5A6B5C),
+          ),
+        ),
+        const SizedBox(height: 24),
 
                       if (_isLoading)
                          const Center(child: CircularProgressIndicator())
@@ -288,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            hintText: 'exemplo@inventario.com',
+                            hintText: 'exemplo@urutau.com',
                             prefixIcon: const Icon(Icons.email),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
