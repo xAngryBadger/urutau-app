@@ -17,7 +17,17 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
-    defaultConfig {
+    signingConfigs {
+    create("release") {
+      val keystoreFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
+      storeFile = keystoreFile
+      storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+      keyAlias = System.getenv("KEY_ALIAS") ?: "release"
+      keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+    }
+  }
+
+  defaultConfig {
         applicationId = "com.urutau.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -27,7 +37,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

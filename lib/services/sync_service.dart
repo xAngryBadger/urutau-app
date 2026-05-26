@@ -108,13 +108,11 @@ class SyncService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _serverUrl = prefs.getString('server_url');
 
-    // URL do servidor (ngrok) — é a que as pessoas em campo usam para chegar ao PocketBase.
-    if (_serverUrl == null || _serverUrl!.isEmpty) {
-      _serverUrl = 'https://REDACTED.ngrok-free.dev';
-      await prefs.setString('server_url', _serverUrl!);
-      await SecureStorageService.delete(SecureStorageService.keyAuthToken);
-    }
+  if (_serverUrl == null || _serverUrl!.isEmpty) {
+    _serverUrl = null;
+  }
 
+  if (_serverUrl != null) {
     _pb = PocketBase(_serverUrl!, httpClientFactory: _createHttpClient);
     // Restaurar auth token se existir
     final authToken =
@@ -122,16 +120,16 @@ class SyncService extends ChangeNotifier {
     if (authToken != null) {
       _pb!.authStore.save(authToken, null);
     }
-
-    // Restaurar usuário local atual
-    final userUuid = prefs.getString('current_user_uuid');
-    if (userUuid != null) {
-      _currentUser = await _db.getUsuarioByUuid(userUuid);
-    }
-
-    await _updatePendingCount();
-    notifyListeners();
   }
+
+  // Restaurar usuário local atual
+  final userUuid = prefs.getString('current_user_uuid');
+  if (userUuid != null) {
+    _currentUser = await _db.getUsuarioByUuid(userUuid);
+  }
+
+  await _updatePendingCount();
+  notifyListeners();
 
   /// Testa conexão com o servidor PocketBase.
   /// Retorna uma string descritiva do resultado.
