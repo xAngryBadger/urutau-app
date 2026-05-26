@@ -4,9 +4,9 @@
 # ========================================================
 
 param(
-    [string]$ServerUrl = "http://localhost:8090",
-    [string]$AdminEmail = "admin@admin.com",
-    [string]$AdminPassword = "admin123456"
+[string]$ServerUrl = "http://localhost:8090",
+[string]$AdminEmail = "",
+[string]$AdminPassword = ""
 )
 
 Write-Host "========================================" -ForegroundColor Cyan
