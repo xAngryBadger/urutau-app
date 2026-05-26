@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'data/database.dart';
@@ -34,6 +35,7 @@ void main() async {
     FlutterError.onError = (details) {
       FlutterError.presentError(details);
       debugPrint('FlutterError: ${details.exceptionAsString()}');
+      _errorStateKey.currentState?.setError(details.exceptionAsString());
     };
 
     runApp(
@@ -48,8 +50,11 @@ void main() async {
     );
   }, (error, stack) {
     debugPrint('Unhandled error: $error\n$stack');
+    _errorStateKey.currentState?.setError(error.toString());
   });
 }
+
+final GlobalKey<_ErrorBoundaryState> _errorStateKey = GlobalKey();
 
 Future<void> _migratePlaintextPasswords(AppDatabase db) async {
   try {
@@ -63,9 +68,14 @@ Future<void> _migratePlaintextPasswords(AppDatabase db) async {
   } catch (_) {}
 }
 
-class UrutauApp extends StatelessWidget {
+class UrutauApp extends StatefulWidget {
   const UrutauApp({super.key});
 
+  @override
+  State<UrutauApp> createState() => _UrutauAppState();
+}
+
+class _UrutauAppState extends State<UrutauApp> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
@@ -77,7 +87,7 @@ class UrutauApp extends StatelessWidget {
       theme: themeProvider.theme,
       themeAnimationDuration: Duration.zero,
       themeAnimationCurve: Curves.easeInOut,
-      initialRoute: '/',
+      home: _ErrorBoundary(key: _errorStateKey),
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/':
@@ -148,5 +158,63 @@ class UrutauApp extends StatelessWidget {
         }
       },
     );
+  }
+}
+
+class _ErrorBoundary extends StatefulWidget {
+  const _ErrorBoundary({super.key});
+
+  @override
+  State<_ErrorBoundary> createState() => _ErrorBoundaryState();
+}
+
+class _ErrorBoundaryState extends State<_ErrorBoundary> {
+  String? _errorMessage;
+
+  void setError(String message) {
+    if (mounted) {
+      setState(() => _errorMessage = message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_errorMessage != null) {
+      return Material(
+        color: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 24),
+              const Text(
+                'Algo deu errado',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                textAlign: TextAlign.center,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 32),
+              FilledButton.icon(
+                onPressed: () {
+                  setState(() => _errorMessage = null);
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return const SplashScreen();
   }
 }

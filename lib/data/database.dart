@@ -425,17 +425,10 @@ VGVG0069;UT04;0.0;1''';
 
   Future<Usuario?> autenticarUsuario(String email, String senha) async {
     final user = await (select(usuarios)
-          ..where((t) => t.email.equals(email) & t.ativo.equals(true)))
-        .getSingleOrNull();
+      ..where((t) => t.email.equals(email) & t.ativo.equals(true)))
+      .getSingleOrNull();
     if (user == null) return null;
-    // Verifica senha (compatível com plaintext legado E hash novo)
     if (PasswordService.verifyPassword(senha, user.senha)) {
-      // Se a senha ainda está em plaintext, migra para hash
-      if (!PasswordService.isHashed(user.senha)) {
-        final hashed = PasswordService.hashPassword(senha);
-        await (update(usuarios)..where((t) => t.uuid.equals(user.uuid)))
-            .write(UsuariosCompanion(senha: Value(hashed)));
-      }
       return user;
     }
     return null;

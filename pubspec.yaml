@@ -45,6 +45,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   crypto: ^3.0.6
 
+  # Web interop
+  web: ^1.1.0
+
   # Exportação XLSX + PDF
   excel: ^4.0.6
   share_plus: ^10.1.4
@@ -71,7 +74,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^6.0.0
+  lints: ^6.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1339,8 +1339,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(10),
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: Semantics(
+            label: 'Pesquisar ID ou área',
             child: TextField(
               controller: _searchController,
               onChanged: (_) => setState(() {}),
@@ -1508,22 +1510,24 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(color: Colors.grey[200]!),
               ),
-              child: ListTile(
-                onTap: () => _entrar('Propriedade', prop),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                leading: CircleAvatar(
-                  backgroundColor: _primaryGreen,
-                  child:
-                      const Icon(Icons.forest, color: Colors.white, size: 20),
-                ),
-                title: Text(prop,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$utCount UT${utCount != 1 ? 's' : ''}',
+              child: Semantics(
+                label: 'Propriedade $prop, $utCount UT${utCount != 1 ? 's' : ''}',
+                child: ListTile(
+                  onTap: () => _entrar('Propriedade', prop),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: _primaryGreen,
+                    child:
+                        const Icon(Icons.forest, color: Colors.white, size: 20),
+                  ),
+                  title: Text(prop,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$utCount UT${utCount != 1 ? 's' : ''}',
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                     if (info != null && info.total > 0)
@@ -1560,30 +1564,34 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: Colors.grey[200]!),
           ),
-          child: ListTile(
-            onTap: () => _entrar('UT', ut),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            leading: CircleAvatar(
-              backgroundColor: _secondaryGreen,
-              child: const Icon(Icons.map, color: Colors.white, size: 20),
-            ),
-            title:
-                Text(ut, style: const TextStyle(fontWeight: FontWeight.w600)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$count parcela${count != 1 ? 's' : ''}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            child: Semantics(
+              label: 'UT $ut, $count parcela${count != 1 ? 's' : ''}',
+              child: ListTile(
+                onTap: () => _entrar('UT', ut),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                leading: CircleAvatar(
+                  backgroundColor: _secondaryGreen,
+                  child: const Icon(Icons.map, color: Colors.white, size: 20),
                 ),
-                if (info != null && info.total > 0)
-                  _ownershipBar(info),
-              ],
+                title:
+                    Text(ut, style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$count parcela${count != 1 ? 's' : ''}',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    if (info != null && info.total > 0)
+                      _ownershipBar(info),
+                  ],
+                ),
+                trailing: const Icon(Icons.chevron_right),
+              ),
             ),
-            trailing: const Icon(Icons.chevron_right),
-          ),
-        );
+                ),
+              );
       },
     );
   }
@@ -1635,8 +1643,11 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                   : Colors.grey[200]!,
             ),
           ),
-          child: ListTile(
-            onTap: () => _openParcela(p),
+            child: Semantics(
+              label: 'Parcela ${p.idParcela}, $statusLabel',
+              button: true,
+              child: ListTile(
+                onTap: () => _openParcela(p),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             leading: CircleAvatar(

@@ -1,9 +1,9 @@
 # Testa se o PocketBase aceita planta "só categoria" (altura=0, dap=null)
 # Executa na tua maquina (PowerShell): .\tool\testar_planta_servidor.ps1
 
-$baseUrl = "https://REDACTED.ngrok-free.dev"
-$email = "user@example.com"
-$password = "REDACTED"
+$baseUrl = "http://localhost:8090"
+$email = ""
+$password = ""
 $headers = @{ "ngrok-skip-browser-warning" = "true"; "Content-Type" = "application/json" }
 
 Write-Host "1. Login..."

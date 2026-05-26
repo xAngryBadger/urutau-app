@@ -397,119 +397,131 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
                       textController.addListener(() {
                         _propriedadeController.text = textController.text;
                       });
-                      return TextFormField(
-                        enabled: !widget.readOnly,
-                        controller: textController,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          labelText: 'Propriedade *',
-                          hintText: 'Ex: Fazenda São João',
-                          prefixIcon: const Icon(Icons.home_work),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          suffixIcon: _propriedadesSugestoes.isNotEmpty
-                              ? const Icon(Icons.arrow_drop_down, size: 20)
-                              : null,
-                        ),
-                        textCapitalization: TextCapitalization.words,
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? 'Campo obrigatório' : null,
-                        onFieldSubmitted: (_) => onSubmitted(),
-                      );
-                    },
+              return Semantics(
+                label: 'Propriedade',
+                child: TextFormField(
+                  enabled: !widget.readOnly,
+                  controller: textController,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: 'Propriedade *',
+                    hintText: 'Ex: Fazenda São João',
+                    prefixIcon: const Icon(Icons.home_work),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: _propriedadesSugestoes.isNotEmpty
+                        ? const Icon(Icons.arrow_drop_down, size: 20)
+                        : null,
                   ),
-                  const SizedBox(height: 16),
+                  textCapitalization: TextCapitalization.words,
+                  validator: (v) =>
+                      v == null || v.trim().isEmpty ? 'Campo obrigatório' : null,
+                  onFieldSubmitted: (_) => onSubmitted(),
+                ),
+              );
+          },
+        ),
+        const SizedBox(height: 16),
 
-                  // --- UT / Talhão (com autocomplete) ---
-                  Autocomplete<String>(
-                    initialValue: TextEditingValue(text: _propUtController.text),
-                    optionsBuilder: (textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return _utSugestoes;
-                      }
-                      return _utSugestoes.where((u) =>
-                          u.toLowerCase().contains(
-                              textEditingValue.text.toLowerCase()));
-                    },
-                    onSelected: (value) {
-                      _propUtController.text = value;
-                    },
-                    fieldViewBuilder: (context, textController, focusNode, onSubmitted) {
-                      if (textController.text != _propUtController.text &&
-                          _propUtController.text.isNotEmpty &&
-                          textController.text.isEmpty) {
-                        textController.text = _propUtController.text;
-                      }
-                      textController.addListener(() {
-                        _propUtController.text = textController.text;
-                      });
-                      return TextFormField(
-                        enabled: !widget.readOnly,
-                        controller: textController,
-                        focusNode: focusNode,
-                        decoration: InputDecoration(
-                          labelText: 'UT / Talhão *',
-                          hintText: 'Ex: UT 01, Talhão A',
-                          prefixIcon: const Icon(Icons.park),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          suffixIcon: _utSugestoes.isNotEmpty
-                              ? const Icon(Icons.arrow_drop_down, size: 20)
-                              : null,
-                        ),
-                        textCapitalization: TextCapitalization.words,
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? 'Campo obrigatório' : null,
-                        onFieldSubmitted: (_) => onSubmitted(),
-                      );
-                    },
+        // --- UT / Talhão (com autocomplete) ---
+        Autocomplete<String>(
+          initialValue: TextEditingValue(text: _propUtController.text),
+          optionsBuilder: (textEditingValue) {
+            if (textEditingValue.text.isEmpty) {
+              return _utSugestoes;
+            }
+            return _utSugestoes.where((u) =>
+                u.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase()));
+          },
+          onSelected: (value) {
+            _propUtController.text = value;
+          },
+          fieldViewBuilder: (context, textController, focusNode, onSubmitted) {
+            if (textController.text != _propUtController.text &&
+                _propUtController.text.isNotEmpty &&
+                textController.text.isEmpty) {
+              textController.text = _propUtController.text;
+            }
+            textController.addListener(() {
+              _propUtController.text = textController.text;
+            });
+            return Semantics(
+              label: 'UT ou Talhão',
+              child: TextFormField(
+                enabled: !widget.readOnly,
+                controller: textController,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  labelText: 'UT / Talhão *',
+                  hintText: 'Ex: UT 01, Talhão A',
+                  prefixIcon: const Icon(Icons.park),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 16),
+                  suffixIcon: _utSugestoes.isNotEmpty
+                      ? const Icon(Icons.arrow_drop_down, size: 20)
+                      : null,
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Campo obrigatório' : null,
+                onFieldSubmitted: (_) => onSubmitted(),
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
 
-                  // --- Número da Parcela (livre: o usuário define na hora) ---
-                  TextFormField(
-                    controller: _idParcelaController,
-                    enabled: !widget.readOnly,
-                    decoration: InputDecoration(
-                      labelText: 'Número da parcela *',
-                      hintText: 'Você define (ex: 1, 2, 3...)',
-                      helperText: 'Número que você dá a esta parcela no campo.',
-                      prefixIcon: const Icon(Icons.tag),
+        // --- Número da Parcela (livre: o usuário define na hora) ---
+        Semantics(
+          label: 'Número da parcela',
+          child: TextFormField(
+          controller: _idParcelaController,
+          enabled: !widget.readOnly,
+          decoration: InputDecoration(
+            labelText: 'Número da parcela *',
+            hintText: 'Você define (ex: 1, 2, 3...)',
+            helperText: 'Número que você dá a esta parcela no campo.',
+            prefixIcon: const Icon(Icons.tag),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    keyboardType: TextInputType.number,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) return 'Campo obrigatório';
-                      if (int.tryParse(v) == null) return 'Número inválido';
-                      return null;
-                    },
-                  ),
+          keyboardType: TextInputType.number,
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Campo obrigatório';
+            if (int.tryParse(v) == null) return 'Número inválido';
+            return null;
+          },
+        ),
+        ),
 
-                  const SizedBox(height: 16),
+        const SizedBox(height: 16),
 
-                  // ==========================================
-                  // SEÇÃO 2: Anotações (antigo Observações) — PRIMEIRO
-                  // ==========================================
-                  TextFormField(
-                    controller: _observacoesController,
-                    enabled: !widget.readOnly,
-                    decoration: InputDecoration(
-                      labelText: 'Anotações (opcional)',
-                      hintText: 'Anotações sobre a parcela...',
-                      prefixIcon: const Icon(Icons.edit_note),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+        // ==========================================
+        // SEÇÃO 2: Anotações (antigo Observações) — PRIMEIRO
+        // ==========================================
+        Semantics(
+          label: 'Anotações',
+          child: TextFormField(
+          controller: _observacoesController,
+          enabled: !widget.readOnly,
+          decoration: InputDecoration(
+            labelText: 'Anotações (opcional)',
+            hintText: 'Anotações sobre a parcela...',
+            prefixIcon: const Icon(Icons.edit_note),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
+          maxLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+        ),
+        ),
 
-                  const SizedBox(height: 32),
+        const SizedBox(height: 32),
 
                   // ==========================================
                   // SEÇÃO 3: Plantas
@@ -598,35 +610,43 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
                   // ==========================================
                   // BOTÕES: Sair e guardar (rascunho) | Concluir
                   // ==========================================
-                  if (!widget.readOnly) ...[
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _salvarRascunho,
-                      icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_as),
-                      label: const Text('Sair e guardar (rascunho)'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      onPressed: _isLoading ? null : _salvar,
-                      icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle),
-                      label: const Text('Concluir parcela (pronta para sincronizar)'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 56),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ],
+      if (!widget.readOnly) ...[
+        Semantics(
+          label: 'Salvar rascunho',
+          button: true,
+          child: OutlinedButton.icon(
+            onPressed: _isLoading ? null : _salvarRascunho,
+            icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_as),
+            label: const Text('Sair e guardar (rascunho)'),
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Semantics(
+          label: 'Concluir parcela',
+          button: true,
+          child: FilledButton.icon(
+            onPressed: _isLoading ? null : _salvar,
+            icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle),
+            label: const Text('Concluir parcela (pronta para sincronizar)'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(double.infinity, 56),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+      ],
                   const SizedBox(height: 32),
-                ],
-              ),
-            ),
-            ),
+          ],
+        ),
+      ),
     ),
-    );
-  }
+  ),
+  );
+}
 
   Widget _sectionTitle(String title, IconData icon) {
     return Row(
@@ -760,8 +780,11 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
     );
   }
 
-  Widget _buildAddFotoButton() {
-    return InkWell(
+Widget _buildAddFotoButton() {
+  return Semantics(
+    label: 'Adicionar foto da parcela',
+    button: true,
+    child: InkWell(
       onTap: _tirarFotoParcela,
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -775,15 +798,17 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
           children: [
             Icon(Icons.add_a_photo, size: 36, color: Colors.grey[400]),
             const SizedBox(height: 8),
-            Text(
-              'Adicionar foto',
-              style: TextStyle(color: Colors.grey[500], fontSize: 13),
-            ),
-          ],
+        Text(
+          'Adicionar foto',
+          style: TextStyle(color: Colors.grey[500], fontSize: 13),
+        ),
+        ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   // ==========================================
   // AÇÕES

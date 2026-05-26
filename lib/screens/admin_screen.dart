@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) '';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -735,26 +736,29 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Pesquisar usuário...',
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                  },
-                )
-              : null,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+      child: Semantics(
+        label: 'Pesquisar usuário',
+        child: TextField(
+          controller: _searchController,
+          decoration: InputDecoration(
+            hintText: 'Pesquisar usuário...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          onChanged: (v) => setState(() => _searchQuery = v),
         ),
-        onChanged: (v) => setState(() => _searchQuery = v),
       ),
     );
   }
@@ -818,124 +822,135 @@ class _AdminScreenState extends State<AdminScreen> {
 
         return Card(
           margin: const EdgeInsets.only(bottom: 10),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _abrirParcelasUsuario(usuario),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: const Color(0xFF304d36),
-                    child: Text(
-                      usuario.nome.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+          child: Semantics(
+            label: 'Usuário ${usuario.nome}, ${parcelas.length} parcelas, $totalPlantas plantas${usuario.isAdmin ? ", administrador" : ""}',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _abrirParcelasUsuario(usuario),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: const Color(0xFF304d36),
+                      child: Text(
+                        usuario.nome.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                usuario.nome,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  usuario.nome,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            if (usuario.isAdmin) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber[700],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Text(
-                                  'ADMIN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
+                              if (usuario.isAdmin) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber[700],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'ADMIN',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ],
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          usuario.email,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 13,
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            _infoChip(Icons.map, '${parcelas.length} parcelas'),
-                            const SizedBox(width: 12),
-                            _infoChip(Icons.grass, '$totalPlantas plantas'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right, color: Colors.grey[400]),
-                  // Ações por usuário (não mostra para admin-principal)
-                  if (usuario.uuid != 'admin-principal')
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: Colors.grey[500], size: 20),
-                      padding: EdgeInsets.zero,
-                      onSelected: (action) {
-                        switch (action) {
-                          case 'toggle_admin':
-                            _toggleAdmin(usuario);
-                            break;
-                          case 'delete_server':
-                            _deletarUsuarioDoServidor(usuario);
-                            break;
-                        }
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: 'toggle_admin',
-                          child: ListTile(
-                            leading: Icon(
-                              usuario.isAdmin ? Icons.person : Icons.admin_panel_settings,
-                              color: usuario.isAdmin ? Colors.orange : Colors.blue,
+                          const SizedBox(height: 4),
+                          Text(
+                            usuario.email,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
                             ),
-                            title: Text(usuario.isAdmin ? 'Remover Admin' : 'Tornar Admin'),
-                            contentPadding: EdgeInsets.zero,
                           ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete_server',
-                          child: ListTile(
-                            leading: Icon(Icons.cloud_off, color: Colors.red),
-                            title: Text('Deletar do Servidor'),
-                            subtitle: Text('Remove do PocketBase'),
-                            contentPadding: EdgeInsets.zero,
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              _infoChip(Icons.map, '${parcelas.length} parcelas'),
+                              const SizedBox(width: 12),
+                              _infoChip(Icons.grass, '$totalPlantas plantas'),
+                            ],
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                ],
+                    Icon(Icons.chevron_right, color: Colors.grey[400]),
+                    // Ações por usuário (não mostra para admin-principal)
+                    if (usuario.uuid != 'admin-principal')
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert, color: Colors.grey[500], size: 20),
+                        padding: EdgeInsets.zero,
+                        onSelected: (action) {
+                          switch (action) {
+                            case 'toggle_admin':
+                              _toggleAdmin(usuario);
+                              break;
+                            case 'delete_server':
+                              _deletarUsuarioDoServidor(usuario);
+                              break;
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'toggle_admin',
+                            child: Semantics(
+                              label: usuario.isAdmin ? 'Remover permissão de administrador de ${usuario.nome}' : 'Tornar ${usuario.nome} administrador',
+                              button: true,
+                              child: ListTile(
+                                leading: Icon(
+                                  usuario.isAdmin ? Icons.person : Icons.admin_panel_settings,
+                                  color: usuario.isAdmin ? Colors.orange : Colors.blue,
+                                ),
+                                title: Text(usuario.isAdmin ? 'Remover Admin' : 'Tornar Admin'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete_server',
+                            child: Semantics(
+                              label: 'Deletar ${usuario.nome} do servidor',
+                              button: true,
+                              child: ListTile(
+                                leading: Icon(Icons.cloud_off, color: Colors.red),
+                                title: Text('Deletar do Servidor'),
+                                subtitle: Text('Remove do PocketBase'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1473,28 +1488,26 @@ class _AdminUserParcelasScreen extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         itemCount: fotos.length,
                         separatorBuilder: (_, __) => const SizedBox(width: 6),
-                        itemBuilder: (ctx, i) {
-                          final foto = fotos[i];
-                          final file = File(foto.compressedPath ?? foto.filePath);
-                          return GestureDetector(
-                            onTap: () => _showImageViewer(context, fotos, i),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: file.existsSync()
-                                  ? Image.file(
-                                      file,
-                                      width: 64,
-                                      height: 64,
-                                      fit: BoxFit.cover,
-                                      cacheWidth: 128,
-                                    )
-                                  : Container(
-                                      width: 64,
-                                      height: 64,
-                                      color: Colors.grey[200],
-                                      child: Icon(Icons.broken_image,
-                                          color: Colors.grey[400]),
-                                    ),
+              itemBuilder: (ctx, i) {
+                final foto = fotos[i];
+                return GestureDetector(
+                  onTap: () => _showImageViewer(context, fotos, i),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: (!kIsWeb)
+                        ? Image.file(
+                            File(foto.compressedPath ?? foto.filePath),
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            cacheWidth: 128,
+                          )
+                        : Container(
+                            width: 64,
+                            height: 64,
+                            color: Colors.grey[200],
+                            child: Icon(Icons.image, color: Colors.grey[400]),
+                          ),
                             ),
                           );
                         },
@@ -1690,10 +1703,25 @@ class _FullscreenImageViewerState extends State<_FullscreenImageViewer> {
         controller: _pageController,
         itemCount: widget.fotos.length,
         onPageChanged: (i) => setState(() => _currentIndex = i),
-        itemBuilder: (context, index) {
-          final foto = widget.fotos[index];
-          final file = File(foto.compressedPath ?? foto.filePath);
-          if (!file.existsSync()) {
+      itemBuilder: (context, index) {
+        final foto = widget.fotos[index];
+        if (kIsWeb) {
+          return const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.image, size: 64, color: Colors.white54),
+                SizedBox(height: 12),
+                Text(
+                  'Visualização não disponível na web',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ],
+            ),
+          );
+        }
+        final file = File(foto.compressedPath ?? foto.filePath);
+        if (!file.existsSync()) {
             return const Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,

@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:io' if (dart.library.html) '';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -78,14 +79,14 @@ class SyncScreenProState extends State<SyncScreenPro> {
         records += plantas.length;
 
         final fotos = await _db.getFotosByParcela(p.uuid);
-        for (final f in fotos) {
-          if (f.filePath.isNotEmpty) {
-            final file = File(f.filePath);
-            if (await file.exists()) {
-              storage += await file.length() / (1024 * 1024); // MB
-            }
+      for (final f in fotos) {
+        if (f.filePath.isNotEmpty && !kIsWeb) {
+          final file = File(f.filePath);
+          if (await file.exists()) {
+            storage += await file.length() / (1024 * 1024); // MB
           }
         }
+      }
       }
 
       setState(() {

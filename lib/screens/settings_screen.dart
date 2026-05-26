@@ -64,23 +64,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _serverUrlController,
-                    decoration: InputDecoration(
-                      labelText: 'URL do Servidor',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    keyboardType: TextInputType.url,
-                  ),
-                  const SizedBox(height: 12),
+        Semantics(
+          label: 'URL do servidor',
+          child: TextField(
+          controller: _serverUrlController,
+          decoration: InputDecoration(
+            labelText: 'URL do Servidor',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          keyboardType: TextInputType.url,
+        ),
+        ),
+        const SizedBox(height: 12),
 
-                  // Botões Salvar e Testar
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
+        // Botões Salvar e Testar
+        Row(
+          children: [
+            Expanded(
+              child: Semantics(
+                label: 'Salvar URL do servidor',
+                button: true,
+                child: FilledButton.icon(
                           onPressed: _isSaving ? null : _saveServerUrl,
                           icon: _isSaving
                               ? const SizedBox(
@@ -92,12 +98,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 )
                               : const Icon(Icons.save),
-                          label: const Text('Salvar'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
+              label: const Text('Salvar'),
+            ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Semantics(
+                label: 'Testar conexão com servidor',
+                button: true,
+                child: OutlinedButton.icon(
                           onPressed: _isTesting ? null : _testConnection,
                           icon: _isTesting
                               ? const SizedBox(
