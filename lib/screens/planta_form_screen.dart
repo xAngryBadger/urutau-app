@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 import '../data/database.dart';
 import '../data/categoria_helper.dart';
 import '../data/especie_item.dart';
@@ -26,7 +27,7 @@ class PlantaFormScreen extends StatefulWidget {
 
 class _PlantaFormScreenState extends State<PlantaFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
   final _especieController = TextEditingController();
   final _alturaController = TextEditingController();
   final _dapController = TextEditingController();

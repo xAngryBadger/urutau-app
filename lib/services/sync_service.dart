@@ -12,16 +12,14 @@ import '../data/database.dart';
 import 'image_service.dart';
 import 'secure_storage_service.dart';
 
-/// HTTP client que injeta header para pular a tela de aviso do ngrok free
-/// e aplica timeout global em todas as requisições.
-class _NgrokHttpClient extends http.BaseClient {
+/// HTTP client com timeout global em todas as requisições.
+class _TimeoutHttpClient extends http.BaseClient {
   final http.Client _inner;
   final Duration timeout;
-  _NgrokHttpClient(this._inner, {this.timeout = const Duration(seconds: 30)});
+  _TimeoutHttpClient(this._inner, {this.timeout = const Duration(seconds: 30)});
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) {
-    request.headers['ngrok-skip-browser-warning'] = 'true';
     return _inner.send(request).timeout(timeout, onTimeout: () {
       throw TimeoutException(
           'Requisição expirou após ${timeout.inSeconds}s: ${request.url}');
@@ -30,8 +28,8 @@ class _NgrokHttpClient extends http.BaseClient {
 }
 
 http.Client _createHttpClient(
-        {Duration timeout = const Duration(seconds: 30)}) =>
-    _NgrokHttpClient(http.Client(), timeout: timeout);
+    {Duration timeout = const Duration(seconds: 30)}) =>
+    _TimeoutHttpClient(http.Client(), timeout: timeout);
 
 String _escapePbFilter(String v) =>
     v.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
@@ -128,8 +126,9 @@ class SyncService extends ChangeNotifier {
     _currentUser = await _db.getUsuarioByUuid(userUuid);
   }
 
-  await _updatePendingCount();
-  notifyListeners();
+    await _updatePendingCount();
+    notifyListeners();
+  }
 
   /// Testa conexão com o servidor PocketBase.
   /// Retorna uma string descritiva do resultado.
@@ -1426,8 +1425,9 @@ class SyncService extends ChangeNotifier {
       } catch (_) {}
     }
 
-    // 4. Só marca tudo como synced se TODAS as plantas foram enviadas
-    if (allPlantasOk) {
+  // 4. Só marca tudo como synced se TODAS as plantas foram enviadas
+  if (allPlantasOk) {
+    await _db.transaction(() async {
       for (final foto in fotos) {
         await _db.marcarFotoSynced(foto.uuid);
       }
@@ -1447,7 +1447,8 @@ class SyncService extends ChangeNotifier {
           entityType: 'parcela',
           entityUuid: parcela.uuid,
           userId: parcela.userId);
-    } else {
+    });
+  } else {
       // Parcela subiu, mas plantas falharam — NÃO marca como synced
       throw Exception(
           'Parcela ${parcela.idParcela} enviada, mas ${plantaErrors.length} '

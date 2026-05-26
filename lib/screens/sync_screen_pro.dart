@@ -17,7 +17,7 @@ class SyncScreenPro extends StatefulWidget {
 }
 
 class SyncScreenProState extends State<SyncScreenPro> {
-  final _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
   final _urlController = TextEditingController();
 
   bool _isLoading = true;

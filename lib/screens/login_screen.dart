@@ -18,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
-  final _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
   
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -328,30 +328,34 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
 
                         // Botão de login
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : _login,
-                            icon: _isLoading
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Icon(Icons.login),
-                            label: Text(
-                              _isLoading ? 'Entrando...' : 'Entrar',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
+        SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: Semantics(
+            label: 'Entrar na aplicação',
+            button: true,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _login,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.login),
+              label: Text(
+                _isLoading ? 'Entrando...' : 'Entrar',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ),
                         const SizedBox(height: 24),
 
                         TextButton(

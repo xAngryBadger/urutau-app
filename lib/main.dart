@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'data/database.dart';
 import 'services/backup_service.dart';
 import 'services/sync_service.dart';
 import 'services/theme_provider.dart';
+import 'services/password_service.dart';
+import 'services/secure_storage_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -13,28 +16,51 @@ import 'screens/admin_screen.dart';
 import 'screens/explorer_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  await BackupService.runPendingRestore();
+    final db = AppDatabase();
+    await BackupService.runPendingRestore();
+    await _migratePlaintextPasswords(db);
 
-  final db = AppDatabase();
-  final syncService = SyncService(db);
-  final themeProvider = ThemeProvider();
+    final syncService = SyncService(db);
+    final themeProvider = ThemeProvider();
 
-  await Future.wait([
-    syncService.init(),
-    themeProvider.init(),
-  ]);
+    await Future.wait([
+      syncService.init(),
+      themeProvider.init(),
+    ]);
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: syncService),
-        ChangeNotifierProvider.value(value: themeProvider),
-      ],
-      child: const UrutauApp(),
-    ),
-  );
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      debugPrint('FlutterError: ${details.exceptionAsString()}');
+    };
+
+    runApp(
+      MultiProvider(
+        providers: [
+          Provider<AppDatabase>.value(value: db),
+          ChangeNotifierProvider.value(value: syncService),
+          ChangeNotifierProvider.value(value: themeProvider),
+        ],
+        child: const UrutauApp(),
+      ),
+    );
+  }, (error, stack) {
+    debugPrint('Unhandled error: $error\n$stack');
+  });
+}
+
+Future<void> _migratePlaintextPasswords(AppDatabase db) async {
+  try {
+    final users = await db.getAllUsuarios();
+    for (final user in users) {
+      if (!PasswordService.isHashed(user.senha)) {
+        final hashed = PasswordService.hashPassword(user.senha);
+        await db.atualizarSenha(user.uuid, hashed);
+      }
+    }
+  } catch (_) {}
 }
 
 class UrutauApp extends StatelessWidget {
@@ -106,6 +132,12 @@ class UrutauApp extends StatelessWidget {
               builder: (_) => const SettingsScreen(),
             );
           case '/admin':
+            final syncService = context.read<SyncService>();
+            if (!syncService.isAdmin) {
+              return MaterialPageRoute(
+                builder: (_) => const LoginScreen(),
+              );
+            }
             return MaterialPageRoute(
               builder: (_) => const AdminScreen(),
             );

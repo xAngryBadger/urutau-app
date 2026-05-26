@@ -18,16 +18,23 @@ android {
     }
 
     signingConfigs {
-    create("release") {
-      val keystoreFile = file(System.getenv("KEYSTORE_FILE") ?: "release.keystore")
-      storeFile = keystoreFile
-      storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-      keyAlias = System.getenv("KEY_ALIAS") ?: "release"
-      keyPassword = System.getenv("KEY_PASSWORD") ?: ""
-    }
-  }
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_FILE") ?: ""
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            val keyAlias = System.getenv("KEY_ALIAS") ?: ""
+            val keyPassword = System.getenv("KEY_PASSWORD") ?: ""
 
-  defaultConfig {
+            if (keystorePath.isNotEmpty() && keystorePassword.isNotEmpty() &&
+                keyAlias.isNotEmpty() && keyPassword.isNotEmpty()) {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
+    }
+
+    defaultConfig {
         applicationId = "com.urutau.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion

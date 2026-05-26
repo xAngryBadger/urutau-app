@@ -27,7 +27,7 @@ class ExplorerScreen extends StatefulWidget {
 }
 
 class _ExplorerScreenState extends State<ExplorerScreen> {
-  final AppDatabase _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
   final TextEditingController _searchController = TextEditingController();
   final List<Map<String, String>> _caminho = [];
 

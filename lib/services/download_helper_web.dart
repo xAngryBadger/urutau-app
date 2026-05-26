@@ -1,14 +1,16 @@
-// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
-import 'dart:html' as html;
+import 'dart:js_interop';
 import 'dart:typed_data';
+import 'package:web/web.dart' as web;
 
-/// Dispara download de arquivo no navegador via Blob + AnchorElement.
 void downloadFileBytes(List<int> bytes, String fileName) {
-  final blob = html.Blob([Uint8List.fromList(bytes)],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  html.AnchorElement(href: url)
-    ..setAttribute('download', fileName)
-    ..click();
-  html.Url.revokeObjectUrl(url);
+  final jsBytes = Uint8List.fromList(bytes).buffer.toJS;
+  final blobParts = <web.BlobPart>[jsBytes].toJS;
+  final blob = web.Blob(blobParts, web.BlobPropertyBag(
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+  final url = web.URL.createObjectURL(blob);
+  final anchor = web.HTMLAnchorElement()
+    ..href = url
+    ..download = fileName;
+  anchor.click();
+  web.URL.revokeObjectURL(url);
 }

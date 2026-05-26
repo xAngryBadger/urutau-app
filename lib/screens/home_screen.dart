@@ -12,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
 
   // ── Estado do filtro ──
   bool _filterActive = false;
@@ -77,22 +77,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Text('Urutau'),
-            if (syncService.currentUser != null)
-              Text(
-                syncService.currentUser!.nome,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                ),
+    title: Semantics(
+      label: 'Urutau - ${syncService.currentUser?.nome ?? "app florestal"}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text('Urutau'),
+          if (syncService.currentUser != null)
+            Text(
+              syncService.currentUser!.nome,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
               ),
-          ],
-        ),
-        centerTitle: true,
-        actions: [
+            ),
+        ],
+      ),
+    ),
+    centerTitle: true,
+    actions: [
           // Indicador de sincronização
           Padding(
             padding: const EdgeInsets.only(right: 4),
@@ -219,10 +222,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.of(context).pushNamed('/parcela/nova'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nova Parcela'),
+      floatingActionButton: Semantics(
+        label: 'Criar nova parcela',
+        button: true,
+        child: FloatingActionButton.extended(
+          onPressed: () => Navigator.of(context).pushNamed('/parcela/nova'),
+          icon: const Icon(Icons.add),
+          label: const Text('Nova Parcela'),
+        ),
       ),
     );
   }

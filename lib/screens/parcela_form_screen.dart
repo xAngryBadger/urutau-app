@@ -33,7 +33,7 @@ class ParcelaFormScreen extends StatefulWidget {
 
 class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
   final _propriedadeController = TextEditingController();
   final _propUtController = TextEditingController();
   final _idParcelaController = TextEditingController();

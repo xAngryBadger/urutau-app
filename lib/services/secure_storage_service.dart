@@ -18,7 +18,8 @@ class SecureStorageService {
   /// Armazena um valor de forma segura.
   static Future<void> write(String key, String value) async {
     if (kIsWeb) {
-      // Web não tem keystore seguro — usa SharedPreferences como fallback
+      // ⚠️ SECURITY: Web não tem keystore seguro — SharedPreferences é visível
+      // no localStorage do navegador. NÃO armazene dados altamente sensíveis na web.
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(key, value);
     } else {

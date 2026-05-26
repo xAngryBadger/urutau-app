@@ -6,7 +6,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   file_selector_windows
   flutter_secure_storage_windows
-  geolocator_windows
   printing
   share_plus
   sqlite3_flutter_libs

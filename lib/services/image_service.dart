@@ -110,8 +110,12 @@ class ImageService {
         errorBuilder: (ctx, err, st) => const _BrokenImagePlaceholder(),
       );
     }
+    final file = File(path);
+    if (!file.existsSync()) {
+      return const _BrokenImagePlaceholder();
+    }
     return Image.file(
-      File(path),
+      file,
       fit: fit,
       width: width,
       height: height,

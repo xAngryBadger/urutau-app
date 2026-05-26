@@ -24,10 +24,7 @@ class PasswordService {
 
   /// Verifica se a senha plaintext corresponde ao hash armazenado.
   static bool verifyPassword(String plaintext, String storedHash) {
-    // Compatibilidade: se o hash não contém separator, é plaintext legado
-    if (!storedHash.contains(_separator)) {
-      return plaintext == storedHash;
-    }
+    if (!storedHash.contains(_separator)) return false;
     final parts = storedHash.split(_separator);
     if (parts.length != 2) return false;
     final salt = parts[0];

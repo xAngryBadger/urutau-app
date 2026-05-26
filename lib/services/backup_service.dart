@@ -5,22 +5,18 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:sqlite3/sqlite3.dart';
 
-/// Backup e restauração do banco local (para recuperar dados após desinstalar).
-/// - Exportar: copia o SQLite para um ficheiro e partilha (Guardar em Downloads/Drive).
-/// - Restaurar: escolhe um ficheiro; na próxima abertura do app o banco é substituído.
 class BackupService {
   static const String _dbName = 'urutau';
   static const String _pendingRestoreKey = 'pending_restore';
   static const String _pendingRestorePathKey = 'pending_restore_path';
 
-  /// Caminho do ficheiro da base de dados (drift_flutter: documents/urutau.sqlite).
   static Future<String> get _dbPath async {
     final dir = await getApplicationDocumentsDirectory();
     return p.join(dir.path, '$_dbName.sqlite');
   }
 
-  /// Executar restauração pendente (chamar no arranque do app, antes de abrir o DB).
   static Future<void> runPendingRestore() async {
     if (kIsWeb) return;
     final prefs = await SharedPreferences.getInstance();
@@ -41,8 +37,6 @@ class BackupService {
     debugPrint('BackupService: restauração aplicada a $targetPath');
   }
 
-  /// Exportar backup: copia o DB para um ficheiro com data e partilha.
-  /// Retorna mensagem de sucesso ou erro.
   static Future<String> exportBackup() async {
     if (kIsWeb) return 'Backup não disponível na versão web.';
     try {
@@ -51,6 +45,15 @@ class BackupService {
       if (!await source.exists()) {
         return 'Base de dados não encontrada.';
       }
+
+      try {
+        final db = sqlite3.open(sourcePath, mode: OpenMode.readOnly);
+        db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+        db.dispose();
+      } catch (e) {
+        debugPrint('BackupService: WAL checkpoint falhou (não crítico): $e');
+      }
+
       final dir = await getApplicationDocumentsDirectory();
       final now = DateFormat('yyyy-MM-dd_HHmm').format(DateTime.now());
       final fileName = 'urutau_backup_$now.sqlite';
@@ -70,9 +73,6 @@ class BackupService {
     }
   }
 
-  /// Preparar restauração: copia o ficheiro escolhido para um path conhecido e marca flag.
-  /// Na próxima abertura do app, runPendingRestore() substitui o DB.
-  /// Retorna mensagem de sucesso ou erro.
   static Future<String> prepareRestore(String backupFilePath) async {
     if (kIsWeb) return 'Restaurar não disponível na versão web.';
     try {
@@ -86,7 +86,6 @@ class BackupService {
     }
   }
 
-  /// Restaurar a partir de bytes (quando file_picker não devolve path, ex. Android).
   static Future<String> prepareRestoreFromBytes(List<int> bytes) async {
     if (kIsWeb) return 'Restaurar não disponível na versão web.';
     try {

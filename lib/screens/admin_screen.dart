@@ -15,7 +15,7 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
-  final _db = AppDatabase();
+  AppDatabase get _db => context.read<AppDatabase>();
   List<Usuario> _usuarios = [];
   Map<String, List<Parcela>> _parcelasPorUsuario = {};
   Map<String, int> _plantasPorUsuario = {};
@@ -964,6 +964,7 @@ class _AdminScreenState extends State<AdminScreen> {
         builder: (_) => _AdminUserParcelasScreen(
           usuario: usuario,
           parcelas: _parcelasPorUsuario[usuario.uuid] ?? [],
+          db: _db,
         ),
       ),
     );
@@ -1213,11 +1214,12 @@ class _AdminScreenState extends State<AdminScreen> {
 class _AdminUserParcelasScreen extends StatelessWidget {
   final Usuario usuario;
   final List<Parcela> parcelas;
-  final _db = AppDatabase();
+  final AppDatabase db;
 
   _AdminUserParcelasScreen({
     required this.usuario,
     required this.parcelas,
+    required this.db,
   });
 
   /// Agrupa parcelas por UT (propUt) e dentro de cada UT por dia.
@@ -1420,7 +1422,7 @@ class _AdminUserParcelasScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               FutureBuilder<List<Planta>>(
-                future: _db.getPlantasByParcela(parcela.uuid),
+                future: db.getPlantasByParcela(parcela.uuid),
                 builder: (context, snap) {
                   final count = snap.data?.length ?? 0;
                   return Row(
@@ -1428,7 +1430,7 @@ class _AdminUserParcelasScreen extends StatelessWidget {
                       _infoChip(Icons.grass, '$count plantas'),
                       const SizedBox(width: 12),
                       FutureBuilder<List<FotosParcelaData>>(
-                        future: _db.getFotosByParcela(parcela.uuid),
+                        future: db.getFotosByParcela(parcela.uuid),
                         builder: (context, fotoSnap) {
                           final fotoCount = fotoSnap.data?.length ?? 0;
                           return _infoChip(
@@ -1459,7 +1461,7 @@ class _AdminUserParcelasScreen extends StatelessWidget {
               ],
               // Thumbnails de fotos
               FutureBuilder<List<FotosParcelaData>>(
-                future: _db.getFotosByParcela(parcela.uuid),
+                future: db.getFotosByParcela(parcela.uuid),
                 builder: (context, snap) {
                   final fotos = snap.data ?? [];
                   if (fotos.isEmpty) return const SizedBox.shrink();
@@ -1619,12 +1621,12 @@ class _AdminUserParcelasScreen extends StatelessWidget {
       SnackBar(content: Text('Exportando parcelas de ${usuario.nome}...')),
     );
 
-    final exportService = ExportService(_db);
-    final ok = await exportService.exportarParcelasXlsx(
-      userId: usuario.uuid,
-      isAdmin: false,
-      nomeUsuario: usuario.nome,
-    );
+  final exportService = ExportService(db);
+  final ok = await exportService.exportarParcelasXlsx(
+    userId: usuario.uuid,
+    isAdmin: false,
+    nomeUsuario: usuario.nome,
+  );
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();

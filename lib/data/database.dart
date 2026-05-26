@@ -635,6 +635,8 @@ VGVG0069;UT04;0.0;1''';
     bool isAdmin = false,
     String? propriedade,
     String? propUt,
+    int limit = 500,
+    int offset = 0,
   }) {
     final query = select(parcelas)..where((t) => t.deletedAt.isNull());
     if (!isAdmin && userId != null) {
@@ -650,6 +652,7 @@ VGVG0069;UT04;0.0;1''';
       query.where((t) => t.propUt.equals(propUt));
     }
     query.orderBy([(t) => OrderingTerm.asc(t.idParcela)]);
+    query.limit(limit, offset: offset);
     return query.get();
   }
 
