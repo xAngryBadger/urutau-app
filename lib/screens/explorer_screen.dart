@@ -203,14 +203,22 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'Deseja assumir esta parcela para trabalhar nela?',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+          Semantics(
+            label: 'Cancelar',
+            button: true,
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
           ),
-          FilledButton.icon(
-            icon: const Icon(Icons.check),
-            onPressed: () => Navigator.pop(ctx, true),
-            label: const Text('Assumir'),
+          Semantics(
+            label: 'Assumir parcela',
+            button: true,
+            child: FilledButton.icon(
+              icon: const Icon(Icons.check),
+              onPressed: () => Navigator.pop(ctx, true),
+              label: const Text('Assumir'),
+            ),
           ),
         ],
       ),
@@ -246,9 +254,13 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'Não é possível visualizar ou editar parcelas de outros utilizadores.',
         ),
         actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido'),
+          Semantics(
+            label: 'Entendido',
+            button: true,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendido'),
+            ),
           ),
         ],
       ),
@@ -360,16 +372,24 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               ],
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              child: const Text('Confirmar'),
-            ),
-          ],
+    actions: [
+      Semantics(
+        label: 'Cancelar',
+        button: true,
+        child: TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cancelar'),
+        ),
+      ),
+      Semantics(
+        label: 'Confirmar',
+        button: true,
+        child: ElevatedButton(
+          onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+          child: const Text('Confirmar'),
+        ),
+      ),
+    ],
         );
       },
     );
@@ -655,17 +675,25 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'Os dados permanecem seguros no servidor. '
           'Pode recuperá-los puxando do servidor.',
         ),
-        actions: [
-          TextButton(
+      actions: [
+        Semantics(
+          label: 'Cancelar',
+          button: true,
+          child: TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+        ),
+        Semantics(
+          label: 'Limpar cache',
+          button: true,
+          child: FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Limpar'),
           ),
-        ],
+        ),
+      ],
       ),
     );
 
@@ -1057,12 +1085,19 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'Os dados locais não sincronizados NÃO serão perdidos. '
           'Deseja sair?',
         ),
-        actions: [
-          TextButton(
+      actions: [
+        Semantics(
+          label: 'Cancelar',
+          button: true,
+          child: TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+        ),
+        Semantics(
+          label: 'Sair da conta',
+          button: true,
+          child: FilledButton(
             onPressed: () async {
               final nav = Navigator.of(context);
               final sync = context.read<SyncService>();
@@ -1074,6 +1109,7 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
             },
             child: const Text('Sair'),
           ),
+        ),
         ],
       ),
     );
@@ -1104,12 +1140,19 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                 )
               : null,
           centerTitle: true,
-          leading: _caminho.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back), onPressed: _voltar)
-              : null,
-          actions: [
-            IconButton(
+        leading: _caminho.isNotEmpty
+        ? Semantics(
+            label: 'Voltar',
+            button: true,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back), onPressed: _voltar),
+          )
+        : null,
+        actions: [
+          Semantics(
+            label: 'Consultar parcelas no servidor',
+            button: true,
+            child: IconButton(
               icon: const Icon(Icons.visibility, color: Colors.white),
               onPressed: syncService.isConfigured
                   ? (_caminho.length == 2
@@ -1126,7 +1169,11 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                   ? 'Consultar no servidor se outros utilizadores já fizeram parcelas'
                   : 'Disponível apenas dentro de uma UT',
             ),
-            IconButton(
+          ),
+          Semantics(
+            label: 'Sincronização',
+            button: true,
+            child: IconButton(
               icon: Badge(
                 isLabelVisible: syncService.pendingCount > 0,
                 label: Text('${syncService.pendingCount}'),
@@ -1140,7 +1187,11 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
               onPressed: _showSyncOptions,
               tooltip: 'Sincronização',
             ),
-            PopupMenuButton<String>(
+          ),
+            Semantics(
+            label: 'Menu de opções',
+            button: true,
+            child: PopupMenuButton<String>(
               iconColor: Colors.white,
               onSelected: (v) {
                 switch (v) {
@@ -1191,9 +1242,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-              ],
-            ),
-          ],
+      ],
+      ),
+      ),
+      ],
         ),
         body: Column(
           children: [
@@ -1381,33 +1433,37 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
     required bool isActive,
     VoidCallback? onTap,
   }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: isActive
-            ? BoxDecoration(
-                color: _primaryGreen.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
-              )
-            : null,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 14,
-                color: isActive ? _primaryGreen : Colors.grey[500]),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? _primaryGreen : Colors.grey[600],
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                fontSize: 13,
+    return Semantics(
+      label: isActive ? label : 'Navegar para $label',
+      button: !isActive,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: isActive
+              ? BoxDecoration(
+                  color: _primaryGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                )
+              : null,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon,
+                  size: 14,
+                  color: isActive ? _primaryGreen : Colors.grey[500]),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? _primaryGreen : Colors.grey[600],
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1420,7 +1476,10 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
       padding: const EdgeInsets.all(12),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: Semantics(
+          label: 'Nova parcela',
+          button: true,
+          child: ElevatedButton.icon(
           onPressed: _adicionar,
           style: ElevatedButton.styleFrom(
             backgroundColor: _primaryGreen,
@@ -1759,9 +1818,9 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'Plantas, fotos e observações serão removidos.\n'
           'A parcela voltará a ficar disponível no catálogo.',
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Limpar dados')),
+    actions: [
+          Semantics(label: 'Cancelar', button: true, child: TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar'))),
+          Semantics(label: 'Limpar dados', button: true, child: FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Limpar dados'))),
         ],
       ),
     );
@@ -1806,12 +1865,16 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'O slot será removido localmente e no servidor (se já foi sincronizado). '
           'Esta ação não pode ser desfeita.',
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Apagar'),
+    actions: [
+          Semantics(label: 'Cancelar', button: true, child: TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar'))),
+          Semantics(
+            label: 'Apagar parcela',
+            button: true,
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Apagar'),
+            ),
           ),
         ],
       ),
@@ -1860,14 +1923,22 @@ class _ExplorerScreenState extends State<ExplorerScreen> {
           'Tem certeza?',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+          Semantics(
+            label: 'Cancelar',
+            button: true,
+            child: TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
           ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Desistir'),
+          Semantics(
+            label: 'Desistir da parcela',
+            button: true,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.orange),
+              child: const Text('Desistir'),
+            ),
           ),
         ],
       ),
@@ -2096,11 +2167,15 @@ class _SyncListSheetState extends State<_SyncListSheet> {
                             style: TextStyle(fontSize: 11, color: Colors.orange[800]),
                           )
                         : null,
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit, size: 22),
-                      onPressed: () => widget.onEdit(p),
-                      tooltip: 'Editar',
-                    ),
+              trailing: Semantics(
+                label: 'Editar parcela',
+                button: true,
+                child: IconButton(
+                  icon: const Icon(Icons.edit, size: 22),
+                  onPressed: () => widget.onEdit(p),
+                  tooltip: 'Editar',
+                ),
+              ),
                   );
                 },
               ),
@@ -2110,39 +2185,51 @@ class _SyncListSheetState extends State<_SyncListSheet> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _selected.isEmpty
-                          ? null
-                          : () => widget.onConfirm(_selected),
-                      icon: const Icon(Icons.cloud_upload),
-                      label: const Text('Confirmar envio'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: widget.primaryGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
+            SizedBox(
+              width: double.infinity,
+              child: Semantics(
+                label: 'Confirmar envio',
+                button: true,
+                child: FilledButton.icon(
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () => widget.onConfirm(_selected),
+                  icon: const Icon(Icons.cloud_upload),
+                  label: const Text('Confirmar envio'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: widget.primaryGreen,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
+                ),
+              ),
+            ),
                   if (widget.onPull != null || widget.onClearCache != null) ...[
                     const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (widget.onPull != null)
-                          TextButton.icon(
-                            icon: const Icon(Icons.cloud_download, size: 18),
-                            label: const Text('Puxar do servidor'),
-                            onPressed: widget.onPull,
-                          ),
-                        if (widget.onClearCache != null && widget.syncedCount > 0) ...[
-                          if (widget.onPull != null) const SizedBox(width: 8),
-                          TextButton.icon(
-                            icon: Icon(Icons.cleaning_services, size: 18, color: Colors.red[400]),
-                            label: const Text('Limpar cache'),
-                            onPressed: widget.onClearCache,
-                          ),
-                        ],
+              if (widget.onPull != null)
+                Semantics(
+                  label: 'Puxar do servidor',
+                  button: true,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.cloud_download, size: 18),
+                    label: const Text('Puxar do servidor'),
+                    onPressed: widget.onPull,
+                  ),
+                ),
+              if (widget.onClearCache != null && widget.syncedCount > 0) ...[
+                if (widget.onPull != null) const SizedBox(width: 8),
+                Semantics(
+                  label: 'Limpar cache',
+                  button: true,
+                  child: TextButton.icon(
+                    icon: Icon(Icons.cleaning_services, size: 18, color: Colors.red[400]),
+                    label: const Text('Limpar cache'),
+                    onPressed: widget.onClearCache,
+                  ),
+                ),
+              ],
                       ],
                     ),
                   ],

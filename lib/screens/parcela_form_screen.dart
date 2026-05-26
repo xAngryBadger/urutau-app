@@ -341,18 +341,26 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
       appBar: AppBar(
         title: Text(_isEditing ? 'Editar Parcela' : 'Nova Parcela'),
         actions: [
-          if (_isEditing) ...[
-            IconButton(
+        if (_isEditing) ...[
+          Semantics(
+            label: 'Próxima parcela',
+            button: true,
+            child: IconButton(
               icon: const Icon(Icons.skip_next),
               onPressed: _goToNextParcela,
               tooltip: 'Próxima parcela (mesmo UT)',
             ),
-            IconButton(
+          ),
+          Semantics(
+            label: 'Excluir parcela',
+            button: true,
+            child: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: _confirmDelete,
               tooltip: 'Excluir parcela',
             ),
-          ],
+          ),
+        ],
         ],
       ),
       body: _isLoading
@@ -397,9 +405,10 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
                       textController.addListener(() {
                         _propriedadeController.text = textController.text;
                       });
-              return Semantics(
-                label: 'Propriedade',
-                child: TextFormField(
+        return Semantics(
+          label: 'Propriedade',
+          textField: true,
+          child: TextFormField(
                   enabled: !widget.readOnly,
                   controller: textController,
                   focusNode: focusNode,
@@ -447,9 +456,10 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
             textController.addListener(() {
               _propUtController.text = textController.text;
             });
-            return Semantics(
-              label: 'UT ou Talhão',
-              child: TextFormField(
+      return Semantics(
+        label: 'UT ou Talhão',
+        textField: true,
+        child: TextFormField(
                 enabled: !widget.readOnly,
                 controller: textController,
                 focusNode: focusNode,
@@ -475,9 +485,10 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
         const SizedBox(height: 16),
 
         // --- Número da Parcela (livre: o usuário define na hora) ---
-        Semantics(
-          label: 'Número da parcela',
-          child: TextFormField(
+    Semantics(
+      label: 'Número da parcela',
+      textField: true,
+      child: TextFormField(
           controller: _idParcelaController,
           enabled: !widget.readOnly,
           decoration: InputDecoration(
@@ -503,9 +514,10 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
         // ==========================================
         // SEÇÃO 2: Anotações (antigo Observações) — PRIMEIRO
         // ==========================================
-        Semantics(
-          label: 'Anotações',
-          child: TextFormField(
+    Semantics(
+      label: 'Anotações',
+      textField: true,
+      child: TextFormField(
           controller: _observacoesController,
           enabled: !widget.readOnly,
           decoration: InputDecoration(
@@ -558,17 +570,21 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
 
                   const SizedBox(height: 12),
 
-                  OutlinedButton.icon(
-                      onPressed: widget.readOnly ? null : _addPlanta,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Adicionar Planta'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
+        Semantics(
+          label: 'Adicionar planta',
+          button: true,
+          child: OutlinedButton.icon(
+          onPressed: widget.readOnly ? null : _addPlanta,
+          icon: const Icon(Icons.add),
+          label: const Text('Adicionar Planta'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        ),
 
                   const SizedBox(height: 32),
 
@@ -625,9 +641,9 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        Semantics(
-          label: 'Concluir parcela',
-          button: true,
+      Semantics(
+        label: 'Salvar parcela',
+        button: true,
           child: FilledButton.icon(
             onPressed: _isLoading ? null : _salvar,
             icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle),
@@ -698,13 +714,21 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
           children: [
             if (planta.fotoEspeciePath != null)
               const Icon(Icons.photo, color: Colors.green, size: 20),
-            IconButton(
-              icon: const Icon(Icons.edit, size: 20),
-              onPressed: () => _editPlanta(planta),
+            Semantics(
+              label: 'Editar planta',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: () => _editPlanta(planta),
+              ),
             ),
-            IconButton(
-              icon: Icon(Icons.delete, size: 20, color: Colors.red[300]),
-              onPressed: () => _removePlanta(planta),
+            Semantics(
+              label: 'Remover planta',
+              button: true,
+              child: IconButton(
+                icon: Icon(Icons.delete, size: 20, color: Colors.red[300]),
+                onPressed: () => _removePlanta(planta),
+              ),
             ),
           ],
         ),
@@ -766,13 +790,17 @@ class _ParcelaFormScreenState extends State<ParcelaFormScreen> {
         Positioned(
           top: 4,
           right: 4,
-          child: IconButton(
-            icon: const Icon(Icons.cancel, color: Colors.red),
-            onPressed: onDelete,
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.8),
-              padding: const EdgeInsets.all(4),
-              minimumSize: const Size(28, 28),
+          child: Semantics(
+            label: 'Remover foto',
+            button: true,
+            child: IconButton(
+              icon: const Icon(Icons.cancel, color: Colors.red),
+              onPressed: onDelete,
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.8),
+                padding: const EdgeInsets.all(4),
+                minimumSize: const Size(28, 28),
+              ),
             ),
           ),
         ),
@@ -881,22 +909,30 @@ Widget _buildAddFotoButton() {
     // Escolher origem
     final source = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
+    builder: (ctx) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Semantics(
+          label: 'Tirar foto com câmera',
+          button: true,
+          child: ListTile(
             leading: const Icon(Icons.camera_alt),
             title: const Text('Câmera'),
             onTap: () => Navigator.pop(ctx, 'camera'),
           ),
-          ListTile(
+        ),
+        Semantics(
+          label: 'Escolher foto da galeria',
+          button: true,
+          child: ListTile(
             leading: const Icon(Icons.photo_library),
             title: const Text('Galeria (múltiplas)'),
             subtitle: const Text('Selecione várias fotos de uma vez'),
             onTap: () => Navigator.pop(ctx, 'gallery'),
           ),
-        ],
-      ),
+        ),
+      ],
+    ),
     );
 
     if (source == null) return;
